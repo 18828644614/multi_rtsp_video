@@ -1,0 +1,56 @@
+app:
+  name: multi-rtsp-video-analysis
+  shutdown_timeout_ms: 5000
+  log_level: info
+
+model:
+  path: models/detector.onnx
+  manifest: models/model-manifest.example.yaml
+  input_width: 640
+  input_height: 640
+  confidence_threshold: 0.40
+  nms_threshold: 0.45
+  class_filter: [person, car, truck, bus]
+
+queue:
+  max_frames: 4
+  max_age_ms: 500
+  drop_policy: drop_oldest
+
+output:
+  directory: output
+  save_annotated_video: true
+  save_events: true
+  save_snapshots: true
+  metrics_interval_ms: 5000
+
+streams:
+  - id: demo-mp4
+    type: mp4
+    path: data/demo.mp4
+    realtime: true
+    loop: false
+    reconnect:
+      enabled: false
+    rules:
+      tracker_enabled: true
+      cooldown_ms: 3000
+      rois: []
+      lines: []
+
+  - id: demo-rtsp
+    type: rtsp
+    url: rtsp://127.0.0.1:8554/demo
+    transport: tcp
+    reconnect:
+      enabled: true
+      connect_timeout_ms: 5000
+      read_timeout_ms: 5000
+      initial_backoff_ms: 500
+      max_backoff_ms: 10000
+      max_retries: 0
+    rules:
+      tracker_enabled: true
+      cooldown_ms: 3000
+      rois: []
+      lines: []

@@ -1,0 +1,230 @@
+{
+  "main": {
+    "id": "edbb5c6c0695515f",
+    "type": "split",
+    "children": [
+      {
+        "id": "59fb0dd67148b8a0",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "cfceb5590fc55b8b",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "docs/architecture.md",
+                "mode": "source",
+                "source": false
+              },
+              "icon": "lucide-file",
+              "title": "architecture"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "vertical"
+  },
+  "left": {
+    "id": "b90dda87c88f52c5",
+    "type": "split",
+    "children": [
+      {
+        "id": "a9020ae6ecadd839",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "47a2f61613090baf",
+            "type": "leaf",
+            "state": {
+              "type": "file-explorer",
+              "state": {
+                "sortOrder": "alphabetical",
+                "autoReveal": false,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-folder-closed",
+              "title": "文件列表"
+            }
+          },
+          {
+            "id": "73ee87109af922d6",
+            "type": "leaf",
+            "state": {
+              "type": "search",
+              "state": {
+                "query": "",
+                "matchingCase": false,
+                "explainSearch": false,
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical"
+              },
+              "icon": "lucide-search",
+              "title": "搜索"
+            }
+          },
+          {
+            "id": "3647e573620412c9",
+            "type": "leaf",
+            "state": {
+              "type": "bookmarks",
+              "state": {
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-bookmark",
+              "title": "书签"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300
+  },
+  "right": {
+    "id": "8cf15b6aa037e333",
+    "type": "split",
+    "children": [
+      {
+        "id": "1370a1db866b8560",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "301cf9c1947b3011",
+            "type": "leaf",
+            "state": {
+              "type": "backlink",
+              "state": {
+                "file": "docs/data-models.md",
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical",
+                "showSearch": false,
+                "searchQuery": "",
+                "backlinkCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-coming-in",
+              "title": "反向链接"
+            }
+          },
+          {
+            "id": "9974d33a87c15390",
+            "type": "leaf",
+            "state": {
+              "type": "outgoing-link",
+              "state": {
+                "file": "docs/data-models.md",
+                "linksCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-going-out",
+              "title": "出链"
+            }
+          },
+          {
+            "id": "0af571afdbe6415c",
+            "type": "leaf",
+            "state": {
+              "type": "tag",
+              "state": {
+                "sortOrder": "frequency",
+                "useHierarchy": true,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-tags",
+              "title": "标签"
+            }
+          },
+          {
+            "id": "9ffbbc6207dbbac7",
+            "type": "leaf",
+            "state": {
+              "type": "all-properties",
+              "state": {
+                "sortOrder": "frequency",
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-archive",
+              "title": "添加笔记属性"
+            }
+          },
+          {
+            "id": "b3a72522fa59d7dd",
+            "type": "leaf",
+            "state": {
+              "type": "outline",
+              "state": {
+                "file": "docs/data-models.md",
+                "followCursor": false,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-list",
+              "title": "大纲"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300,
+    "collapsed": true
+  },
+  "left-ribbon": {
+    "hiddenItems": {
+      "switcher:打开快速切换": false,
+      "graph:查看关系图谱": false,
+      "canvas:新建白板": false,
+      "daily-notes:打开/创建今天的日记": false,
+      "templates:插入模板": false,
+      "command-palette:打开命令面板": false,
+      "bases:新建数据库": false
+    }
+  },
+  "active": "cfceb5590fc55b8b",
+  "lastOpenFiles": [
+    "docs/decisions/001-thread-model.md",
+    "configs/README.md",
+    "docs/data-models.md",
+    "docs/dependency.md",
+    "docs/development-roadmap.md",
+    "docs/requirements.md",
+    "docs/configuration.md",
+    "multi_rtsp_video_analysis_knowledge.zip",
+    "vault_staging/90-待补充/知识缺口清单.md",
+    "vault_staging/11-项目实战/分阶段实战路线.md",
+    "vault_staging/10-测试性能与部署/测试、性能与部署.md",
+    "vault_staging/09-输出与可观测性/输出、日志与指标.md",
+    "vault_staging/08-RTSP与网络流/RTSP与重连.md",
+    "vault_staging/07-实时并发与队列/线程模型与有界队列.md",
+    "vault_staging/06-跟踪与事件分析/Tracker与越线事件.md",
+    "vault_staging/05-目标检测与模型部署/目标检测与ONNX Runtime.md",
+    "vault_staging/04-OpenCV图像处理/Mat、ROI与颜色空间.md",
+    "vault_staging/03-FFmpeg媒体输入/媒体基础与视频解码.md",
+    "vault_staging/02-C++与工程基础/C++与CMake.md",
+    "vault_staging/01-项目概览/项目定位与系统架构.md",
+    "vault_staging/00-索引/学习路线.md",
+    "vault_staging/graph.md",
+    "vault_staging/index.md",
+    "vault_staging/README.md",
+    "vault_staging/90-待补充",
+    "vault_staging/11-项目实战",
+    "vault_staging/10-测试性能与部署",
+    "vault_staging/09-输出与可观测性",
+    "vault_staging/08-RTSP与网络流",
+    "vault_staging/07-实时并发与队列",
+    "vault_staging/06-跟踪与事件分析",
+    "vault_staging/05-目标检测与模型部署",
+    "vault_staging/04-OpenCV图像处理",
+    "README.md",
+    "tests/README.md",
+    "src/README.md"
+  ]
+}

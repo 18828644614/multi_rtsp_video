@@ -1,0 +1,27 @@
+name: example-detector
+version: 1
+format: onnx
+source: replace-with-authorized-source
+license: replace-with-model-license
+sha256: replace-with-sha256
+
+input:
+  width: 640
+  height: 640
+  layout: NCHW
+  color: RGB
+  dtype: float32
+  normalization: divide_by_255
+  resize: letterbox
+
+classes:
+  - person
+  - car
+  - truck
+  - bus
+
+output:
+  format: replace-with-model-output-format
+  confidence: replace-with-confidence-rule
+  nms: class_aware
+  nms_threshold: 0.45
