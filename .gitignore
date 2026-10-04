@@ -1,0 +1,10 @@
+/build/
+/.venv/
+/output/
+/data/
+*.onnx
+*.pt
+/.vs/
+*.user
+*.suo
+*.vcxproj.user

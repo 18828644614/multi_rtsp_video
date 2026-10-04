@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "docs/architecture.md",
+                "file": "docs/development-roadmap.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "architecture"
+              "title": "development-roadmap"
             }
           }
         ]
@@ -190,14 +190,28 @@
   },
   "active": "cfceb5590fc55b8b",
   "lastOpenFiles": [
+    "build/mingw-debug/Testing/Temporary/LastTest.log.tmp3dd41",
+    "build/mingw-debug/CMakeFiles/Progress/4",
+    "build/mingw-debug/CMakeFiles/Progress/3",
+    "build/mingw-debug/CMakeFiles/Progress/2",
+    "build/mingw-debug/CMakeFiles/Progress/1",
+    "build/mingw-debug/CMakeFiles/smoke_test.dir/compiler_depend.internal",
+    "build/mingw-debug/CMakeFiles/multi_rtsp_video_analysis.dir/compiler_depend.internal",
+    "build/mingw-debug/CMakeFiles/multi_rtsp_video_analysis.dir/compiler_depend.internal.tmpb523b",
+    "build/mingw-debug/CMakeFiles/multi_rtsp_video_analysis.dir/compiler_depend.make.tmp85b16",
+    "build/mingw-debug/CMakeFiles/Progress/count.txt",
+    "build/mingw-debug/CMakeFiles/Progress",
+    "project_analysis.md",
+    "notes.md",
+    "task_plan.md",
+    "docs/dependency.md",
+    "docs/data-models.md",
+    "docs/configuration.md",
+    "docs/architecture.md",
     "docs/decisions/001-thread-model.md",
     "configs/README.md",
-    "docs/data-models.md",
-    "docs/dependency.md",
     "docs/development-roadmap.md",
     "docs/requirements.md",
-    "docs/configuration.md",
-    "multi_rtsp_video_analysis_knowledge.zip",
     "vault_staging/90-待补充/知识缺口清单.md",
     "vault_staging/11-项目实战/分阶段实战路线.md",
     "vault_staging/10-测试性能与部署/测试、性能与部署.md",
@@ -211,20 +225,6 @@
     "vault_staging/02-C++与工程基础/C++与CMake.md",
     "vault_staging/01-项目概览/项目定位与系统架构.md",
     "vault_staging/00-索引/学习路线.md",
-    "vault_staging/graph.md",
-    "vault_staging/index.md",
-    "vault_staging/README.md",
-    "vault_staging/90-待补充",
-    "vault_staging/11-项目实战",
-    "vault_staging/10-测试性能与部署",
-    "vault_staging/09-输出与可观测性",
-    "vault_staging/08-RTSP与网络流",
-    "vault_staging/07-实时并发与队列",
-    "vault_staging/06-跟踪与事件分析",
-    "vault_staging/05-目标检测与模型部署",
-    "vault_staging/04-OpenCV图像处理",
-    "README.md",
-    "tests/README.md",
-    "src/README.md"
+    "vault_staging/graph.md"
   ]
 }
