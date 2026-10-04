@@ -46,3 +46,10 @@
 - 不要把队列做成无限长度；推理变慢时会导致延迟和内存一起增长。
 - 不要把 MP4 EOF 当成 RTSP 断流；前者通常是正常结束，后者需要重连。
 - 不要先优化共享推理线程池；第一版每路独立处理更容易调试和证明正确。
+
+## Configuration Implementation Findings
+- 接入 yaml-cpp-0.9.0，由 CMake FetchContent 固定版本下载并构建。
+- 配置加载器将 YAML 转换为 AppConfig，并在启动阶段校验未知字段、必填字段、阈值、枚举、路径、URL 和重复流 ID。
+- 当前相对路径按程序当前工作目录解析，因此应从项目根目录运行程序。
+- configs/example.yaml 当前会因为缺少 data/demo.mp4 被拒绝，这是预期的启动前路径校验行为。
+- 当前阶段只统计 rois/lines 数量，尚未解析 ROI 和越线几何数据；模型 manifest 也只检查文件存在性，详细字段校验属于后续 Detector 阶段。

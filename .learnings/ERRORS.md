@@ -173,3 +173,175 @@ The string add_executable(multi is not a valid regular expression: Invalid patte
 - See Also: none
 
 ---
+## [ERR-20261004-005] config_loader_old_toolchain
+
+**Logged**: 2026-10-04T13:40:00+08:00
+**Priority**: medium
+**Status**: pending
+**Area**: backend
+
+### 摘要（Summary）
+配置加载器首次编译时使用了当前 GCC 7.3.0/实验 filesystem 不支持的 API，导致构建失败。
+
+### 原始错误（Error）
+```
+error: 'const KeySet ...' has no member named 'contains'
+error: 'path' has no member named 'lexically_normal'
+error: 'const class YAML::Node' has no member named 'empty'
+```
+
+### 上下文（Context）
+- 当前 MinGW 为 GCC 7.3.0，虽然以 C++17 模式编译，但标准库实现较旧。
+- `std::set::contains` 属于 C++20，不能用于 C++17。
+- GCC 7.3.0 的 `std::experimental::filesystem` 不提供 `lexically_normal`。
+- 当前 yaml-cpp 头文件接口不提供 `YAML::Node::empty()`。
+
+### 建议修复（Suggested Fix）
+改用 `set.find(...) != set.end()`、直接使用 `absolute(...)`、以及 `size() == 0`，保持 C++17 和旧工具链兼容。
+
+### 元数据（Metadata）
+- Reproducible: yes
+- Related Files: src/config/config.cpp
+- See Also: none
+
+---
+## [ERR-20261004-006] config_test_old_fstream
+
+**Logged**: 2026-10-04T13:45:00+08:00
+**Priority**: low
+**Status**: pending
+**Area**: tests
+
+### 摘要（Summary）
+配置测试在 GCC 7.3.0 下无法直接使用 `std::experimental::filesystem::path` 构造 `std::ofstream`。
+
+### 原始错误（Error）
+```
+error: no matching function for call to 'std::basic_ofstream<char>::basic_ofstream(const std::experimental::filesystem::v1::__cxx11::path&, const openmode&)'
+```
+
+### 上下文（Context）
+- 新版 C++ 标准库支持路径直接传给文件流，但当前 GCC 7.3.0 的实现只接受字符串路径。
+- 主程序和配置库本身已经成功编译。
+
+### 建议修复（Suggested Fix）
+在测试辅助函数中使用 `path.string()`，保持对旧版 MinGW 的兼容。
+
+### 元数据（Metadata）
+- Reproducible: yes
+- Related Files: tests/config_test.cpp
+- See Also: ERR-20261004-005
+
+---
+## [ERR-20261004-008] powershell_cmake_replace
+
+**Logged**: 2026-10-04T13:55:00+08:00
+**Priority**: low
+**Status**: pending
+**Area**: infra
+
+### 摘要（Summary）
+尝试用 PowerShell 字符串替换追加 CMake 链接配置时，嵌套引号导致命令解析失败；源码文件没有被写入。
+
+### 原始错误（Error）
+```
+ParserError: Missing ')' in method call.
+```
+
+### 上下文（Context）
+- 失败发生在 PowerShell 命令解析阶段。
+- 当前 `CMakeLists.txt` 未被该命令修改。
+
+### 建议修复（Suggested Fix）
+对多行 CMake 内容使用 here-string 或直接重写完整文件，避免在 `.Replace()` 参数中嵌套复杂引号。
+
+### 元数据（Metadata）
+- Reproducible: yes
+- Related Files: CMakeLists.txt
+- See Also: none
+
+---
+## [ERR-20261004-009] yaml_windows_path_escape
+
+**Logged**: 2026-10-04T14:05:00+08:00
+**Priority**: medium
+**Status**: pending
+**Area**: tests
+
+### 摘要（Summary）
+配置测试把 Windows 反斜杠路径直接写入 YAML 双引号字符串，导致 yaml-cpp 将 `\U` 等内容当作转义序列并解析失败。
+
+### 原始错误（Error）
+```
+yaml-cpp: error at line 6, column 22: bad character found while scanning hex number
+```
+
+### 上下文（Context）
+- 测试生成的路径类似 `C:\Users\...`。
+- YAML 双引号字符串中的反斜杠有特殊含义。
+
+### 建议修复（Suggested Fix）
+写入 YAML 前将 Windows 路径中的 `\` 转换为 `/`，或使用 YAML 单引号/正确转义。
+
+### 元数据（Metadata）
+- Reproducible: yes
+- Related Files: tests/config_test.cpp
+- See Also: none
+
+---
+## [ERR-20261004-010] config_test_temp_cleanup
+
+**Logged**: 2026-10-04T14:15:00+08:00
+**Priority**: low
+**Status**: pending
+**Area**: tests
+
+### 摘要（Summary）
+配置测试在旧版 MinGW 的 experimental filesystem 下清理 Windows 临时目录时遇到权限错误，导致测试在业务断言通过后仍失败。
+
+### 原始错误（Error）
+```
+filesystem error: cannot remove all: Permission denied [C:\Users\Lenovo\AppData\Local\Temp\multi_rtsp_config_test]
+```
+
+### 上下文（Context）
+- 配置解析和校验逻辑已经执行到测试收尾阶段。
+- 失败发生在测试目录清理，不是测试数据或业务校验失败。
+
+### 建议修复（Suggested Fix）
+使用带 `std::error_code` 的尽力清理，忽略清理失败，避免环境权限问题影响测试结果。
+
+### 元数据（Metadata）
+- Reproducible: yes
+- Related Files: tests/config_test.cpp
+- See Also: ERR-20261004-009
+
+---
+## [ERR-20261004-011] powershell_notes_sync
+
+**Logged**: 2026-10-04T14:25:00+08:00
+**Priority**: low
+**Status**: pending
+**Area**: infra
+
+### 摘要（Summary）
+同步任务计划和笔记时，PowerShell 多行字符串包含无效转义处理，命令未完成写入。
+
+### 原始错误（Error）
+```
+Command exited with code 1 and produced no output.
+```
+
+### 上下文（Context）
+- 代码、构建和测试均已完成。
+- 失败只发生在分析记录文件同步阶段。
+
+### 建议修复（Suggested Fix）
+使用不包含伪转义字符的纯文本 here-string 分别写入任务计划和笔记。
+
+### 元数据（Metadata）
+- Reproducible: yes
+- Related Files: task_plan.md, notes.md
+- See Also: none
+
+---
