@@ -17,40 +17,41 @@
 
 ## 3. 帧数据契约
 
-`DecodedFrame` 当前包含：
+`FramePacket` 当前包含；代码中保留 `DecodedFrame` 作为兼容别名：
 
 - `stream_id`：单路解码默认值为 `mp4`。
 - `sequence`：从 0 开始递增的解码帧序号。
 - `pts` 与 `time_base`：源视频时间戳，不用墙钟时间替代。
 - `width`、`height`、`stride`：BGR24 输出布局。
+- `pixel_format`：当前为 `Bgr24`。
 - `capture_time_ms`、`monotonic_time_ms`：帧完成解码时的接收时间。
 - `image`：连续的 BGR24 字节，大小为 `stride * height`。
 
 ## 4. 命令行验证
 
-先完成 FFmpeg 开发包配置：
+先完成 FFmpeg 开发包配置。建议从 Visual Studio 2022 的 Developer PowerShell 或 Developer Command Prompt（x64）中运行以下命令。
 
 ```powershell
-cmake --preset mingw-debug -DFFMPEG_ROOT=D:/path/to/ffmpeg
-cmake --build --preset mingw-debug
+cmake --preset msvc-debug -DFFMPEG_ROOT=C:/path/to/ffmpeg
+cmake --build --preset msvc-debug --config Debug
 ```
 
 完整解码：
 
 ```powershell
-build/mingw-debug/multi_rtsp_video_analysis.exe --decode-mp4 data/demo.mp4
+build/msvc-debug/Debug/multi_rtsp_video_analysis.exe --decode-mp4 data/demo.mp4
 ```
 
 快速验证前 10 帧：
 
 ```powershell
-build/mingw-debug/multi_rtsp_video_analysis.exe --decode-mp4 data/demo.mp4 10
+build/msvc-debug/Debug/multi_rtsp_video_analysis.exe --decode-mp4 data/demo.mp4 10
 ```
 
 模块测试会打开仓库内的 `data/demo.mp4`，检查元数据、BGR24 缓冲区尺寸、连续序号、PTS 单调性和 EOF 收尾：
 
 ```powershell
-ctest --preset mingw-debug -R mp4_decoder_test --output-on-failure
+ctest --preset msvc-debug -C Debug -R mp4_decoder_test --output-on-failure
 ```
 
 ## 5. 当前范围

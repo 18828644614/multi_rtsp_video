@@ -41,7 +41,7 @@ ctest --preset <platform-debug>
 <FFMPEG_ROOT>/lib/avformat、avcodec、avutil、swscale 对应的链接库
 ```
 
-Windows MinGW 应使用与 MinGW ABI 匹配的导入库，通常是 `.dll.a`；仅有 `bin/` 下的 FFmpeg 运行时 DLL 不能完成 CMake 链接。运行程序时还要确保 FFmpeg DLL 所在目录在 `PATH` 中。
+Windows 当前使用 MSVC，应使用与 MSVC ABI 匹配的 FFmpeg 开发文件：头文件位于 `include/`，链接库通常是 `lib/*.lib`。仅有 `bin/` 下的 FFmpeg 运行时 DLL 不能完成 CMake 链接。运行程序时还要确保 FFmpeg DLL 所在目录在 `PATH` 中。
 
 当前可执行文件提供最小解码验证入口：
 

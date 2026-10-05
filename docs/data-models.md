@@ -2,7 +2,7 @@
 
 ## 1. `FramePacket`
 
-`FramePacket` 是解码线程与处理线程之间的唯一帧契约。
+`FramePacket` 是解码线程与处理线程之间的唯一帧契约，代码定义在 `include/media/frame.hpp`。
 
 | 字段 | 类型 | 说明 |
 |---|---|---|
@@ -13,8 +13,8 @@
 | `capture_time_ms` | int64 | 输入接收时的墙上时钟时间 |
 | `monotonic_time_ms` | int64 | 输入接收时的单调时钟时间 |
 | `width/height` | int | 图像尺寸 |
-| `pixel_format` | enum | 转换后图像格式 |
-| `image` | cv::Mat 或共享缓冲区 | 明确引用计数和所有权 |
+| `pixel_format` | enum | 当前输出为 `Bgr24` |
+| `image` | `std::vector<uint8_t>` | 独立拥有的 BGR24 字节缓冲区 |
 
 ## 2. `Detection`
 

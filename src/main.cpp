@@ -33,7 +33,7 @@ int decodeMp4(int argc, char* argv[]) {
     std::cout << "time_base: " << info.time_base.numerator << "/" << info.time_base.denominator << "\n";
     std::cout << "fps: " << info.average_frame_rate << "\n";
 
-    media::DecodedFrame frame;
+    media::FramePacket frame;
     std::size_t frameCount = 0;
     while (decoder.read(frame)) {
         ++frameCount;
@@ -88,4 +88,3 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 }
-

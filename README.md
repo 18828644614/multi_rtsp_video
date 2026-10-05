@@ -89,23 +89,23 @@ multi_rtsp_video_analysis/
 
 ## 单路 MP4 解码验证
 
-FFmpeg 开发包需要同时提供 `include/` 和 `lib/`。配置时可以通过 `FFMPEG_ROOT` 指定安装前缀：
+FFmpeg 开发包需要同时提供 include/ 和 lib/。建议从 Visual Studio 2022 的 Developer PowerShell 或 Developer Command Prompt（x64）中运行以下命令。配置时可以通过 FFMPEG_ROOT 指定安装前缀：
 
 ```powershell
-cmake --preset mingw-debug -DFFMPEG_ROOT=D:/path/to/ffmpeg
-cmake --build --preset mingw-debug
+cmake --preset msvc-debug -DFFMPEG_ROOT=C:/path/to/ffmpeg
+cmake --build --preset msvc-debug --config Debug
 ```
 
 直接解码并输出帧数、分辨率、编码器、time base 和最后一帧信息：
 
 ```powershell
-build/mingw-debug/multi_rtsp_video_analysis.exe --decode-mp4 data/demo.mp4
+build/msvc-debug/Debug/multi_rtsp_video_analysis.exe --decode-mp4 data/demo.mp4
 ```
 
 只解码前 10 帧可用于快速检查：
 
 ```powershell
-build/mingw-debug/multi_rtsp_video_analysis.exe --decode-mp4 data/demo.mp4 10
+build/msvc-debug/Debug/multi_rtsp_video_analysis.exe --decode-mp4 data/demo.mp4 10
 ```
 
 实现细节、资源生命周期和排错方式见 `docs/mp4-decoder.md`。

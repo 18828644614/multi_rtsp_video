@@ -7,26 +7,29 @@
   },
   "configurePresets": [
     {
-      "name": "mingw-debug",
-      "displayName": "MinGW Debug",
-      "generator": "MinGW Makefiles",
+      "name": "msvc-debug",
+      "displayName": "MSVC Debug",
+      "generator": "Visual Studio 17 2022",
+      "architecture": "x64",
+      "toolset": "v143",
       "binaryDir": "${sourceDir}/build/${presetName}",
       "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "Debug",
         "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
       }
     }
   ],
   "buildPresets": [
     {
-      "name": "mingw-debug",
-      "configurePreset": "mingw-debug"
+      "name": "msvc-debug",
+      "configurePreset": "msvc-debug",
+      "configuration": "Debug"
     }
   ],
   "testPresets": [
     {
-      "name": "mingw-debug",
-      "configurePreset": "mingw-debug",
+      "name": "msvc-debug",
+      "configurePreset": "msvc-debug",
+      "configuration": "Debug",
       "output": {
         "outputOnFailure": true
       }

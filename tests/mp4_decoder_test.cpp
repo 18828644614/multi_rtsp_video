@@ -20,7 +20,7 @@ int main(int argc, char* argv[]) {
             return 1;
         }
 
-        media::DecodedFrame frame;
+        media::FramePacket frame;
         std::size_t decodedFrames = 0;
         int64_t previousPts = std::numeric_limits<int64_t>::min();
         while (decoder.read(frame)) {

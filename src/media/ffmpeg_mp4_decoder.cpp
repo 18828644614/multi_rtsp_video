@@ -210,7 +210,7 @@ void FfmpegMp4Decoder::open() {
     }
 }
 
-bool FfmpegMp4Decoder::read(DecodedFrame& output) {
+bool FfmpegMp4Decoder::read(FramePacket& output) {
     if (!impl_->opened) {
         throw std::logic_error("MP4 decoder is not open");
     }
@@ -252,6 +252,7 @@ bool FfmpegMp4Decoder::read(DecodedFrame& output) {
             output.width = width;
             output.height = height;
             output.stride = static_cast<int>(stride);
+            output.pixel_format = PixelFormat::Bgr24;
             output.capture_time_ms = wallClockMilliseconds();
             output.monotonic_time_ms = monotonicClockMilliseconds();
             av_frame_unref(impl_->frame);

@@ -8,6 +8,12 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 include(FetchContent)
 include(FindPackageHandleStandardArgs)
+find_package(Threads REQUIRED)
+
+if(MINGW)
+    add_compile_options(-mthreads)
+    add_link_options(-mthreads)
+endif()
 
 set(YAML_CPP_BUILD_TESTS OFF CACHE BOOL "" FORCE)
 set(YAML_CPP_BUILD_TOOLS OFF CACHE BOOL "" FORCE)
@@ -136,6 +142,22 @@ target_link_libraries(ffmpeg_decoder
 
 enable_project_warnings(ffmpeg_decoder)
 
+
+add_library(frame_pipeline STATIC
+    src/pipeline/frame_queue.cpp
+)
+
+target_include_directories(frame_pipeline
+    PUBLIC
+        ${PROJECT_SOURCE_DIR}/include
+)
+
+target_link_libraries(frame_pipeline
+    PUBLIC
+        Threads::Threads
+)
+
+enable_project_warnings(frame_pipeline)
 add_executable(multi_rtsp_video_analysis
     src/main.cpp
 )
@@ -193,6 +215,25 @@ endif()
 enable_project_warnings(config_test)
 
 add_test(NAME config_test COMMAND config_test)
+
+
+add_executable(frame_queue_test
+    tests/frame_queue_test.cpp
+)
+
+target_include_directories(frame_queue_test
+    PRIVATE
+        ${PROJECT_SOURCE_DIR}/include
+)
+
+target_link_libraries(frame_queue_test
+    PRIVATE
+        frame_pipeline
+)
+
+enable_project_warnings(frame_queue_test)
+
+add_test(NAME frame_queue_test COMMAND frame_queue_test)
 
 add_executable(mp4_decoder_test
     tests/mp4_decoder_test.cpp
