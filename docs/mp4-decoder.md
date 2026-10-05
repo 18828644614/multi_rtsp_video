@@ -29,10 +29,10 @@
 
 ## 4. 命令行验证
 
-先完成 FFmpeg 开发包配置。建议从 Visual Studio 2022 的 Developer PowerShell 或 Developer Command Prompt（x64）中运行以下命令。
+先确认 FFmpeg 开发包同时包含 `include/` 和 `lib/`。如果 `ffmpeg.exe` 已在 `PATH` 中，CMake 会自动尝试推导安装根目录。建议从 Visual Studio 2022 的 Developer PowerShell 或 Developer Command Prompt（x64）中运行以下命令。
 
 ```powershell
-cmake --preset msvc-debug -DFFMPEG_ROOT=C:/path/to/ffmpeg
+cmake --fresh --preset msvc-debug
 cmake --build --preset msvc-debug --config Debug
 ```
 

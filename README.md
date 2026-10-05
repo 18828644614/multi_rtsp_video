@@ -89,10 +89,10 @@ multi_rtsp_video_analysis/
 
 ## 单路 MP4 解码验证
 
-FFmpeg 开发包需要同时提供 include/ 和 lib/。建议从 Visual Studio 2022 的 Developer PowerShell 或 Developer Command Prompt（x64）中运行以下命令。配置时可以通过 FFMPEG_ROOT 指定安装前缀：
+FFmpeg 开发包需要同时提供 `include/` 和 `lib/`。如果 `ffmpeg.exe` 已经在 `PATH` 中，CMake 会自动尝试从它的 `bin/` 父目录推导 `FFMPEG_ROOT`。建议从 Visual Studio 2022 的 Developer PowerShell 或 Developer Command Prompt（x64）中运行以下命令：
 
 ```powershell
-cmake --preset msvc-debug -DFFMPEG_ROOT=C:/path/to/ffmpeg
+cmake --fresh --preset msvc-debug
 cmake --build --preset msvc-debug --config Debug
 ```
 

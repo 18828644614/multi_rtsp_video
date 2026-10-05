@@ -31,7 +31,7 @@ ctest --preset <platform-debug>
 
 在实现 CMake 工程之前，先确定 FFmpeg、OpenCV 和 ONNX Runtime 的发现方式，避免把本机绝对路径写入业务配置。
 
-当前 CMake 已支持通过 `FFMPEG_ROOT` 查找 FFmpeg。该目录至少需要包含：
+当前 CMake 支持通过 `FFMPEG_ROOT` 查找 FFmpeg；如果未指定，也会尝试从 PATH 中的 `ffmpeg.exe` 自动推导根目录。该目录至少需要包含：
 
 ```text
 <FFMPEG_ROOT>/include/libavformat/avformat.h
@@ -41,7 +41,7 @@ ctest --preset <platform-debug>
 <FFMPEG_ROOT>/lib/avformat、avcodec、avutil、swscale 对应的链接库
 ```
 
-Windows 当前使用 MSVC，应使用与 MSVC ABI 匹配的 FFmpeg 开发文件：头文件位于 `include/`，链接库通常是 `lib/*.lib`。仅有 `bin/` 下的 FFmpeg 运行时 DLL 不能完成 CMake 链接。运行程序时还要确保 FFmpeg DLL 所在目录在 `PATH` 中。
+Windows 当前使用 MSVC，应使用与 MSVC ABI 匹配的 FFmpeg 开发文件：头文件位于 `include/`，链接库必须包含 `lib/avcodec.lib`、`lib/avformat.lib`、`lib/avutil.lib` 和 `lib/swscale.lib`。`bin/ffmpeg.exe` 只代表运行时程序，不能替代这些开发库。运行程序时还要确保 FFmpeg DLL 所在目录在 `PATH` 中。
 
 当前可执行文件提供最小解码验证入口：
 

@@ -59,6 +59,24 @@ if(NOT FFMPEG_ROOT AND DEFINED ENV{FFMPEG_ROOT})
     set(FFMPEG_ROOT "$ENV{FFMPEG_ROOT}")
 endif()
 
+if(FFMPEG_ROOT AND NOT EXISTS "${FFMPEG_ROOT}")
+    message(WARNING "FFMPEG_ROOT does not exist and will be ignored: ${FFMPEG_ROOT}")
+    unset(FFMPEG_ROOT CACHE)
+    set(FFMPEG_ROOT "")
+endif()
+
+if(NOT FFMPEG_ROOT)
+    find_program(FFMPEG_EXECUTABLE NAMES ffmpeg)
+    if(FFMPEG_EXECUTABLE)
+        get_filename_component(_ffmpeg_bin_dir "${FFMPEG_EXECUTABLE}" DIRECTORY)
+        get_filename_component(_ffmpeg_auto_root "${_ffmpeg_bin_dir}" DIRECTORY)
+        if(EXISTS "${_ffmpeg_auto_root}/include" OR EXISTS "${_ffmpeg_auto_root}/lib")
+            set(FFMPEG_ROOT "${_ffmpeg_auto_root}" CACHE PATH "FFmpeg installation prefix" FORCE)
+            message(STATUS "Auto-detected FFmpeg root: ${FFMPEG_ROOT}")
+        endif()
+    endif()
+endif()
+
 find_package(PkgConfig QUIET)
 if(PkgConfig_FOUND)
     pkg_check_modules(FFMPEG_PC_AVCODEC QUIET libavcodec)
@@ -118,7 +136,9 @@ find_package_handle_standard_args(FFMPEG
 )
 if(NOT FFMPEG_FOUND)
     message(FATAL_ERROR
-        "FFmpeg development files were not found. Set FFMPEG_ROOT to an FFmpeg prefix containing include/ and lib/."
+        "FFmpeg development libraries were not found under '${FFMPEG_ROOT}/lib'. "
+        "MSVC requires avcodec.lib, avformat.lib, avutil.lib and swscale.lib; "
+        "the ffmpeg.exe runtime alone is not sufficient."
     )
 endif()
 
