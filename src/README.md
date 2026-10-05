@@ -4,7 +4,7 @@
 
 - `main.cpp`：进程入口、配置加载和生命周期编排。
 - `config/`：配置解析、默认值和校验。
-- `input/`：`VideoSource`、FFmpeg 解码和 `FrameConverter`。
+- `media/`：单路 MP4 的 FFmpeg 解码、帧转换和稳定的 BGR24 帧契约；后续再拆分 `VideoSource` 与通用 `Decoder`。
 - `pipeline/`：`FrameQueue`、`StreamWorker` 和停止流程。
 - `inference/`：ONNX Runtime 会话、预处理和后处理。
 - `tracking/`：简化 Tracker 和轨迹状态。

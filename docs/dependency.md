@@ -31,6 +31,24 @@ ctest --preset <platform-debug>
 
 在实现 CMake 工程之前，先确定 FFmpeg、OpenCV 和 ONNX Runtime 的发现方式，避免把本机绝对路径写入业务配置。
 
+当前 CMake 已支持通过 `FFMPEG_ROOT` 查找 FFmpeg。该目录至少需要包含：
+
+```text
+<FFMPEG_ROOT>/include/libavformat/avformat.h
+<FFMPEG_ROOT>/include/libavcodec/avcodec.h
+<FFMPEG_ROOT>/include/libavutil/avutil.h
+<FFMPEG_ROOT>/include/libswscale/swscale.h
+<FFMPEG_ROOT>/lib/avformat、avcodec、avutil、swscale 对应的链接库
+```
+
+Windows MinGW 应使用与 MinGW ABI 匹配的导入库，通常是 `.dll.a`；仅有 `bin/` 下的 FFmpeg 运行时 DLL 不能完成 CMake 链接。运行程序时还要确保 FFmpeg DLL 所在目录在 `PATH` 中。
+
+当前可执行文件提供最小解码验证入口：
+
+```text
+multi_rtsp_video_analysis.exe --decode-mp4 <input.mp4> [max-frames]
+```
+
 ## 4. 模型与媒体资产
 
 - 模型必须配套 manifest，记录输入尺寸、类别顺序、预处理、后处理和许可证。

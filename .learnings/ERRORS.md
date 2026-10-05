@@ -345,3 +345,66 @@ Command exited with code 1 and produced no output.
 - See Also: none
 
 ---
+## [ERR-20261004-012] ffmpeg_development_libraries_missing
+
+**Logged**: 2026-10-04T21:30:00+08:00
+**Priority**: high
+**Status**: pending
+**Area**: infra
+
+### 摘要（Summary）
+当前 FFmpeg 安装可被 CMake 找到头文件，但没有可供 MinGW 链接的开发库，因此项目无法完成 FFmpeg 解码模块的本机构建。
+
+### 原始错误（Error）
+```
+-- Could NOT find FFMPEG (missing: FFMPEG_AVCODEC_LIBRARY FFMPEG_AVFORMAT_LIBRARY FFMPEG_AVUTIL_LIBRARY FFMPEG_SWSCALE_LIBRARY)
+CMake Error at CMakeLists.txt:114 (message):
+  FFmpeg development files were not found.  Set FFMPEG_ROOT to an FFmpeg
+  prefix containing include/ and lib/.
+```
+
+### 上下文（Context）
+- 使用 `C:\Users\Lenovo\AppData\Local\Microsoft\WinGet\Packages\Gyan.FFmpeg.Shared_Microsoft.Winget.Source_8wekyb3d8bbwe\ffmpeg-9.0.2-full_build-shared` 作为 `FFMPEG_ROOT`。
+- CMake 配置阶段没有找到 `avcodec`、`avformat`、`avutil` 和 `swscale` 的链接库。
+- 当前编译器是 MinGW GCC 7.3.0；Windows 上的 FFmpeg 运行时 DLL 不等于可链接的 MinGW 开发包。
+
+### 建议修复（Suggested Fix）
+安装与 MinGW ABI 匹配的 FFmpeg development package，确保 `FFMPEG_ROOT/include` 下有头文件、`FFMPEG_ROOT/lib` 下有 `.dll.a` 或兼容的导入库，然后重新配置 CMake。
+
+### 元数据（Metadata）
+- Reproducible: yes
+- Related Files: CMakeLists.txt
+- See Also: none
+
+---
+
+## [ERR-20261004-013] mp4_decoder_test_filesystem_link
+
+**Logged**: 2026-10-04T21:36:00+08:00
+**Priority**: medium
+**Status**: resolved
+**Area**: tests
+
+### 摘要（Summary）
+新增 `mp4_decoder_test` 在 GCC 7.3.0 下链接失败，因为测试目标没有复用项目对 `std::experimental::filesystem` 所需的 `stdc++fs` 链接配置。
+
+### 原始错误（Error）
+```
+undefined reference to `std::experimental::filesystem::v1::__cxx11::path::_M_split_cmpts()'
+undefined reference to `std::experimental::filesystem::v1::__cxx11::filesystem_error::~filesystem_error()'
+```
+
+### 上下文（Context）
+- `ffmpeg_decoder` 和主程序已经完成编译。
+- `config_test` 已有 GCC 9 以下版本的 `stdc++fs` 链接分支。
+- 新增测试目标漏掉了相同分支。
+
+### 建议修复（Suggested Fix）
+为所有直接或间接使用 `app_fs::path` 的 GCC 9 以下目标链接 `stdc++fs`。
+
+### 元数据（Metadata）
+- Reproducible: yes
+- Related Files: CMakeLists.txt, tests/mp4_decoder_test.cpp
+- See Also: ERR-20261004-005
+
+---

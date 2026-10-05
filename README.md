@@ -4,7 +4,7 @@
 
 这是一个以 C++ 为核心、面向音视频与计算机视觉工程实践的多路视频分析项目。系统从本地 MP4 或 RTSP 输入读取视频，使用 FFmpeg 完成媒体读取与解码，使用 OpenCV 完成图像处理，使用 ONNX Runtime 运行目标检测，并输出检测结果、事件和运行指标。
 
-当前状态：规划阶段。仓库目前以设计文档和可复用配置模板为主，尚未包含完整的 C++ 实现。
+当前状态：基础工程与单路 MP4 解码已实现。配置解析、FFmpeg 解封装/解码、BGR24 帧转换、时间戳保留和模块测试已具备；检测、跟踪、事件与 RTSP 仍按路线逐步实现。
 
 ## 第一版目标
 
@@ -86,3 +86,26 @@ multi_rtsp_video_analysis/
   → 使用 MediaMTX 发布多路 RTSP
   → 运行四路并发和断流重连测试
 ```
+
+## 单路 MP4 解码验证
+
+FFmpeg 开发包需要同时提供 `include/` 和 `lib/`。配置时可以通过 `FFMPEG_ROOT` 指定安装前缀：
+
+```powershell
+cmake --preset mingw-debug -DFFMPEG_ROOT=D:/path/to/ffmpeg
+cmake --build --preset mingw-debug
+```
+
+直接解码并输出帧数、分辨率、编码器、time base 和最后一帧信息：
+
+```powershell
+build/mingw-debug/multi_rtsp_video_analysis.exe --decode-mp4 data/demo.mp4
+```
+
+只解码前 10 帧可用于快速检查：
+
+```powershell
+build/mingw-debug/multi_rtsp_video_analysis.exe --decode-mp4 data/demo.mp4 10
+```
+
+实现细节、资源生命周期和排错方式见 `docs/mp4-decoder.md`。
