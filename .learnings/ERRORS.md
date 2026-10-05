@@ -408,3 +408,60 @@ undefined reference to `std::experimental::filesystem::v1::__cxx11::filesystem_e
 - See Also: ERR-20261004-005
 
 ---
+
+## [ERR-20261005-001] readme_exact_line_match
+
+**Logged**: 2026-10-05T00:00:00+08:00
+**Priority**: low
+**Status**: resolved
+**Area**: docs
+
+### Summary
+A scripted README update expected an exact Unicode line and stopped before documentation edits.
+
+### Error
+```text
+Expected one match in README.md, found 0
+```
+
+### Context
+- The source line differed from the assumed string despite appearing equivalent in terminal output.
+- Core implementation files had already been written; the README and pipeline guide were completed by locating the line using stable ASCII markers.
+
+### Suggested Fix
+Prefer locating documentation lines by stable anchors and verify the match count before writing.
+
+### Metadata
+- Reproducible: no
+- Related Files: README.md
+- Tags: powershell, text-replacement
+- See Also: ERR-20261004-001
+---
+## [ERR-20261005-002] powershell_quote_parser
+
+**Logged**: 2026-10-05T00:00:00+08:00
+**Priority**: low
+**Status**: resolved
+**Area**: infra
+
+### Summary
+A PowerShell formatting command had invalid nested quote escaping and did not execute.
+
+### Error
+```text
+ParserError: Missing ')' in method call.
+```
+
+### Context
+- Failure occurred before the formatting script made any file changes.
+- Replaced the command with a simpler line-ending normalization script.
+
+### Suggested Fix
+Prefer single-quoted literals and short, isolated PowerShell edits.
+
+### Metadata
+- Reproducible: no
+- Related Files: src/main.cpp
+- Tags: powershell, quoting
+- See Also: ERR-20261005-001
+---

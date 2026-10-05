@@ -165,6 +165,7 @@ enable_project_warnings(ffmpeg_decoder)
 
 add_library(frame_pipeline STATIC
     src/pipeline/frame_queue.cpp
+    src/pipeline/frame_pipeline.cpp
 )
 
 target_include_directories(frame_pipeline
@@ -191,6 +192,7 @@ target_link_libraries(multi_rtsp_video_analysis
     PRIVATE
         app_config
         ffmpeg_decoder
+        frame_pipeline
 )
 
 if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 9)
@@ -254,6 +256,24 @@ target_link_libraries(frame_queue_test
 enable_project_warnings(frame_queue_test)
 
 add_test(NAME frame_queue_test COMMAND frame_queue_test)
+
+add_executable(frame_pipeline_test
+    tests/frame_pipeline_test.cpp
+)
+
+target_include_directories(frame_pipeline_test
+    PRIVATE
+        ${PROJECT_SOURCE_DIR}/include
+)
+
+target_link_libraries(frame_pipeline_test
+    PRIVATE
+        frame_pipeline
+)
+
+enable_project_warnings(frame_pipeline_test)
+
+add_test(NAME frame_pipeline_test COMMAND frame_pipeline_test)
 
 add_executable(mp4_decoder_test
     tests/mp4_decoder_test.cpp

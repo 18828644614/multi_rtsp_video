@@ -12,6 +12,7 @@
 - [x] Phase 6: 创建 CMake 空工程并验证构建
 - [x] Phase 7: 实现 YAML 配置读取与启动校验
 - [x] Phase 8: 实现 FrameQueue 基础设施
+- [x] Phase 9: 实现单路生产者—消费者流水线
 
 ## Key Questions
 1. 项目的入口在哪里，启动时依次加载什么？
@@ -49,6 +50,8 @@
 - include/media/frame.hpp：跨线程帧数据契约。
 - include/pipeline/frame_queue.hpp、src/pipeline/frame_queue.cpp：有界 FrameQueue。
 - tests/frame_queue_test.cpp：队列策略、停止和年龄清理测试。
+- include/pipeline/frame_pipeline.hpp、src/pipeline/frame_pipeline.cpp：双线程生产消费流水线。
+- tests/frame_pipeline_test.cpp、docs/frame-pipeline.md：并发测试和实现说明。
 
 ## Validation
 - `cmake --list-presets`：通过。
@@ -58,4 +61,4 @@
 - MSVC 构建需要配置包含 `include/` 和 `lib/*.lib` 的 FFmpeg 开发包。
 
 ## Status
-**In Progress** - 已完成项目分析、配置、单路 MP4 解码和 FrameQueue 基础设施，下一步进入 StreamWorker 与处理线程。
+**In Progress** - 已完成项目分析、配置、单路 MP4 解码、FrameQueue 及单路生产者—消费者流水线；下一步接入单路 Detector。
