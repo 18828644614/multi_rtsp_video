@@ -142,6 +142,22 @@ if(NOT FFMPEG_FOUND)
     )
 endif()
 
+add_library(vision_manifest STATIC
+    src/vision/model_manifest.cpp
+)
+
+target_include_directories(vision_manifest
+    PUBLIC
+        ${PROJECT_SOURCE_DIR}/include
+)
+
+target_link_libraries(vision_manifest
+    PUBLIC
+        yaml-cpp::yaml-cpp
+)
+
+enable_project_warnings(vision_manifest)
+
 add_library(ffmpeg_decoder STATIC
     src/media/ffmpeg_mp4_decoder.cpp
 )
@@ -215,6 +231,37 @@ target_include_directories(smoke_test
 enable_project_warnings(smoke_test)
 
 add_test(NAME smoke_test COMMAND smoke_test)
+
+add_executable(detection_test
+    tests/detection_test.cpp
+)
+
+target_include_directories(detection_test
+    PRIVATE
+        ${PROJECT_SOURCE_DIR}/include
+)
+
+enable_project_warnings(detection_test)
+
+add_test(NAME detection_test COMMAND detection_test)
+
+add_executable(model_manifest_test
+    tests/model_manifest_test.cpp
+)
+
+target_include_directories(model_manifest_test
+    PRIVATE
+        ${PROJECT_SOURCE_DIR}/include
+)
+
+target_link_libraries(model_manifest_test
+    PRIVATE
+        vision_manifest
+)
+
+enable_project_warnings(model_manifest_test)
+
+add_test(NAME model_manifest_test COMMAND model_manifest_test)
 
 add_executable(config_test
     tests/config_test.cpp

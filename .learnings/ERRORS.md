@@ -465,3 +465,176 @@ Prefer single-quoted literals and short, isolated PowerShell edits.
 - Tags: powershell, quoting
 - See Also: ERR-20261005-001
 ---
+## [ERR-20261006-001] apply_patch_access_denied
+
+**Logged**: 2026-10-06T15:40:29+08:00
+**Priority**: medium
+**Status**: pending
+**Area**: infra
+
+### 摘要（Summary）
+本次通过 PowerShell 管道调用 pply_patch 时返回 Access is denied.，补丁未执行。
+
+### 原始错误（Error）
+`	ext
+Access is denied.
+`
+
+### 上下文（Context）
+- 当前仓库已有同类补丁包装器权限问题记录。
+- Get-Command apply_patch 显示命令包装器调用 WindowsApps 下的 codex.exe。
+
+### 建议修复（Suggested Fix）
+补丁包装器不可用时，使用受控的 PowerShell UTF-8 文件写入继续，并在结束时检查工作区差异。
+
+### 元数据（Metadata）
+- Reproducible: yes
+- Related Files: CMakeLists.txt, include/vision/detection.hpp, include/vision/detector.hpp, tests/detection_test.cpp
+- See Also: ERR-20261004-001
+
+---
+
+## [ERR-20261006-002] write_header_missing_directory
+
+**Logged**: 2026-10-06T15:41:00+08:00
+**Priority**: low
+**Status**: resolved
+**Area**: infra
+
+### 摘要（Summary）
+写入新头文件时，目标目录 include/vision 尚不存在，导致两个文件创建失败；测试和 CMake 注册已成功写入。
+
+### 原始错误（Error）
+`	ext
+Could not find a part of the path 'D:\LearningProjects\multi_rtsp_video_analysis\include\vision\detection.hpp'.
+`
+
+### 上下文（Context）
+- 使用 PowerShell/.NET UTF-8 写入新文件。
+- 写入前未先创建新目录；随后发现错误并立即补建目录。
+
+### 建议修复（Suggested Fix）
+创建新文件前先确认或创建其父目录，并在写入脚本中启用终止错误处理。
+
+### 元数据（Metadata）
+- Reproducible: no
+- Related Files: include/vision/detection.hpp, include/vision/detector.hpp
+- See Also: none
+
+---
+
+## [ERR-20261006-003] yaml_cpp_fetch_stale_git_proxy
+
+**Logged**: 2026-10-06T16:01:39+08:00
+**Priority**: medium
+**Status**: pending
+**Area**: infra
+
+### 摘要（Summary）
+CMake 配置阶段 FetchContent 无法克隆 yaml-cpp，因为 Git 用户级代理指向未监听的本机端口 127.0.0.1:7899。
+
+### 原始错误（Error）
+`	ext
+fatal: unable to access 'https://github.com/jbeder/yaml-cpp.git/': Failed to connect to 127.0.0.1 port 7899 after 2041 ms: Connection refused
+`
+
+### 上下文（Context）
+- git config --show-origin --get-regexp proxy 显示 C:/Users/Lenovo/.gitconfig 中的 http.proxy 和 https.proxy 均设为 http://127.0.0.1:7899。
+- 当前进程未发现 proxy 环境变量。
+
+### 建议修复（Suggested Fix）
+若使用本机代理，启动代理程序或更新 Git 代理端口；若不使用代理，再移除用户级 Git http.proxy 和 https.proxy 后重新运行 CMake configure preset。
+
+### 元数据（Metadata）
+- Reproducible: yes
+- Related Files: CMakeLists.txt, C:/Users/Lenovo/.gitconfig
+- See Also: ERR-20261006-001
+
+---
+## [ERR-20261006-004] apply_patch_access_denied_commit2
+
+**Logged**: 2026-10-06T16:30:00+08:00
+**Priority**: medium
+**Status**: pending
+**Area**: infra
+
+### 摘要（Summary）
+本次实现 Commit 2 时，apply_patch 包装器再次返回 Access is denied，补丁未执行。
+
+### 原始错误（Error）
+```
+Access is denied.
+```
+
+### 上下文（Context）
+- 当前仓库在 Windows PowerShell 环境中执行。
+- 直接通过 PowerShell 管道调用 apply_patch 创建 manifest 文件时失败。
+- 仓库中已有同类 apply_patch 权限问题记录。
+
+### 建议修复（Suggested Fix）
+继续使用受控的 PowerShell UTF-8 文件写入作为本地环境的降级方案，并在写入后检查 git diff、构建和测试结果。
+
+### 元数据（Metadata）
+- Reproducible: yes
+- Related Files: include/vision/model_manifest.hpp, src/vision/model_manifest.cpp
+- See Also: ERR-20261006-001
+
+---## [ERR-20261006-005] ctest_missing_existing_executables
+
+**Logged**: 2026-10-06T16:35:00+08:00
+**Priority**: low
+**Status**: pending
+**Area**: tests
+
+### 摘要（Summary）
+直接运行完整 CTest 时，只有新构建的 model_manifest_test 和已存在的 detection_test 可执行文件，其他测试目标尚未构建，因此被 CTest 标记为 Not Run。
+
+### 原始错误（Error）
+```
+Unable to find executable: D:/LearningProjects/multi_rtsp_video_analysis/build/msvc-debug/Debug/smoke_test.exe
+Unable to find executable: D:/LearningProjects/multi_rtsp_video_analysis/build/msvc-debug/Debug/config_test.exe
+Unable to find executable: D:/LearningProjects/multi_rtsp_video_analysis/build/msvc-debug/Debug/frame_queue_test.exe
+Unable to find executable: D:/LearningProjects/multi_rtsp_video_analysis/build/msvc-debug/Debug/frame_pipeline_test.exe
+Unable to find executable: D:/LearningProjects/multi_rtsp_video_analysis/build/msvc-debug/Debug/mp4_decoder_test.exe
+```
+
+### 上下文（Context）
+- 先前只构建了 model_manifest_test target。
+- CTest 注册了全部测试，但不会自动构建缺失的测试可执行文件。
+
+### 建议修复（Suggested Fix）
+先构建 ALL_BUILD，再运行完整 CTest。
+
+### 元数据（Metadata）
+- Reproducible: yes
+- Related Files: build/msvc-debug/CTestTestfile.cmake, CMakeLists.txt
+- See Also: none
+
+---## [ERR-20261006-006] test_include_marker_mismatch
+
+**Logged**: 2026-10-06T16:38:00+08:00
+**Priority**: low
+**Status**: pending
+**Area**: tests
+
+### 摘要（Summary）
+尝试为新测试补充显式标准库 include 时，PowerShell 字符串替换未命中目标文本，文件未被修改。
+
+### 原始错误（Error）
+```
+test include marker not found
+```
+
+### 上下文（Context）
+- 使用 PowerShell `String.Replace` 搜索 `#include <system_error>`。
+- 新文件的换行或读取表示与预期字符串不一致。
+
+### 建议修复（Suggested Fix）
+先读取实际文件头部，再使用行级插入或完整受控写回；写回后重新编译。
+
+### 元数据（Metadata）
+- Reproducible: yes
+- Related Files: tests/model_manifest_test.cpp
+- See Also: none
+
+---

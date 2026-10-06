@@ -16,16 +16,15 @@
 | `pixel_format` | enum | 当前输出为 `Bgr24` |
 | `image` | `std::vector<uint8_t>` | 独立拥有的 BGR24 字节缓冲区 |
 
-## 2. `Detection`
+## 2. `BoundingBox`、`Detection` 与 `DetectionResult`
 
-```text
-class_id       模型类别编号
-label          可读类别名称
-confidence     [0, 1] 范围内的置信度
-bbox           原始图像坐标系中的 x/y/width/height
-```
+`BoundingBox` 使用原始图像的像素坐标：`x/y` 是左上角，`width/height` 是框的尺寸。坐标不能使用模型输入尺寸或 0 到 1 的归一化坐标。
 
-检测框必须在输出前裁剪到图像边界，坐标不能使用模型输入尺寸坐标。
+`BoundingBox::isWithinFrame(frame_width, frame_height)` 只做校验，不会自动裁剪。它要求图像尺寸为正、坐标和尺寸都是有限值、左上角不为负、框宽高为正，且 `x + width`、`y + height` 不超过图像边界。检测器若得到越界框，应先按策略裁剪，再将结果交给下游；否则校验会返回 `false`。
+
+`Detection` 保存 `class_id`、可读类别 `label`、`[0, 1]` 范围内的 `confidence` 和 `bbox`。
+
+`DetectionResult` 保存一次帧检测结果：流 ID、帧序号、图像尺寸、检测列表，以及完整的帧时间信息。`pts + time_base` 表示源媒体时间；`capture_time_ms` 是接收帧时的墙钟时间；`monotonic_time_ms` 用于延迟计算。不要把这些时间字段混为一个时间戳。
 
 ## 3. `Track`
 
