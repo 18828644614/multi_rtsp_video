@@ -4,7 +4,7 @@
 
 这是一个以 C++ 为核心、面向音视频与计算机视觉工程实践的多路视频分析项目。系统从本地 MP4 或 RTSP 输入读取视频，使用 FFmpeg 完成媒体读取与解码，使用 OpenCV 完成图像处理，使用 ONNX Runtime 运行目标检测，并输出检测结果、事件和运行指标。
 
-当前状态：基础工程、单路 MP4 解码和单路生产者—消费者流水线已实现。配置解析、FFmpeg 解封装/解码、BGR24 帧转换、时间戳保留、有界队列和流水线测试已具备；目标检测、跟踪、事件与 RTSP 仍按路线逐步实现。
+当前状态：基础工程、单路 MP4 解码、单路生产者—消费者流水线和 YOLO26n ONNX 检测器已实现并通过测试。检测器当前作为独立模块验证，尚未接入主程序的 MP4/RTSP 启动流程；Tracker、事件与 RTSP 仍按路线逐步实现。
 
 ## 第一版目标
 
@@ -115,6 +115,12 @@ build/msvc-debug/Debug/multi_rtsp_video_analysis.exe --decode-mp4 data/demo.mp4 
 build/msvc-debug/Debug/multi_rtsp_video_analysis.exe --process-mp4 data/demo.mp4 100 4
 ```
 
-最后两个参数分别是最大处理帧数（`0` 表示处理到文件结束）和队列容量。当前消费者只验证帧数据并统计数量，后续可替换为目标检测处理器。
+最后两个参数分别是最大处理帧数（`0` 表示处理到文件结束）和队列容量。消费者现在会加载 YOLO26n ONNX 模型，对每帧执行检测，并默认将结果写入 `detections.jsonl`。
+
+也可以继续传入模型、manifest 和输出文件路径：
+
+```powershell
+build/msvc-debug/Debug/multi_rtsp_video_analysis.exe --process-mp4 data/demo.mp4 100 4 models/detector.onnx models/detector-manifest.yaml detections.jsonl
+```
 
 实现细节、资源生命周期和排错方式见 `docs/mp4-decoder.md`。

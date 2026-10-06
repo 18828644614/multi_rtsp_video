@@ -179,7 +179,13 @@ void validateModelManifest(const ModelManifest& manifest) {
     }
 
     validateStringField(manifest.output.format, "output.format");
+    if (manifest.output.format != "ultralytics_yolo26_raw") {
+        fail("output.format must be ultralytics_yolo26_raw");
+    }
     validateStringField(manifest.output.confidence, "output.confidence");
+    if (manifest.output.confidence != "max_class_score") {
+        fail("output.confidence must be max_class_score");
+    }
     validateStringField(manifest.output.nms, "output.nms");
     if (manifest.output.nms != "class_aware" && manifest.output.nms != "class_agnostic") {
         fail("output.nms must be one of class_aware, class_agnostic");

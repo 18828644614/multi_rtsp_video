@@ -14,8 +14,8 @@
 | C++17 编译器 | 编译 | `CMakePresets.json` 或构建日志 |
 | CMake | 构建 | `CMakePresets.json` |
 | FFmpeg | 解封装、解码、时间戳 | 构建日志 |
-| OpenCV | 图像转换和绘制 | 构建日志 |
-| ONNX Runtime | 模型推理 | 构建日志 |
+| OpenCV 4.x (`core`, `imgproc`) | 图像缩放、letterbox 和像素转换 | CMake 配置与构建日志 |
+| ONNX Runtime C++ CPU | ONNX 模型推理 | CMake 配置与构建日志 |
 | GoogleTest | 测试 | CMake 配置 |
 | MediaMTX | 本地 RTSP 模拟 | `scripts/README.md` |
 
@@ -29,7 +29,7 @@ cmake --build --preset <platform-debug>
 ctest --preset <platform-debug>
 ```
 
-在实现 CMake 工程之前，先确定 FFmpeg、OpenCV 和 ONNX Runtime 的发现方式，避免把本机绝对路径写入业务配置。
+依赖路径只通过 CMake cache 变量或环境变量传入，不写入业务配置或提交开发机绝对路径。
 
 当前 CMake 支持通过 `FFMPEG_ROOT` 查找 FFmpeg；如果未指定，也会尝试从 PATH 中的 `ffmpeg.exe` 自动推导根目录。该目录至少需要包含：
 
@@ -42,6 +42,24 @@ ctest --preset <platform-debug>
 ```
 
 Windows 当前使用 MSVC，应使用与 MSVC ABI 匹配的 FFmpeg 开发文件：头文件位于 `include/`，链接库必须包含 `lib/avcodec.lib`、`lib/avformat.lib`、`lib/avutil.lib` 和 `lib/swscale.lib`。`bin/ffmpeg.exe` 只代表运行时程序，不能替代这些开发库。运行程序时还要确保 FFmpeg DLL 所在目录在 `PATH` 中。
+
+检测器依赖通过以下变量定位：
+
+- `OpenCV_DIR` 指向包含 `OpenCVConfig.cmake` 的目录，且安装中包含 `core` 和 `imgproc`。
+- `ONNXRUNTIME_ROOT` 指向解压后的 ONNX Runtime C++ CPU 包根目录；Windows 需要 `include/onnxruntime_cxx_api.h`、`lib/onnxruntime.lib` 和 `lib/onnxruntime.dll`。
+- Windows 上应使用与 MSVC/目标架构匹配的 OpenCV 和 ONNX Runtime 包。当前验证基线为 OpenCV 4.12.0 与 ONNX Runtime 1.30.0 CPU 包。
+
+MSVC x64 配置示例：
+
+```powershell
+cmake --preset msvc-debug `
+  -DOpenCV_DIR="<opencv-prefix>/build/x64/vc16/lib" `
+  -DONNXRUNTIME_ROOT="<onnxruntime-package-root>"
+cmake --build --preset msvc-debug --config Debug
+ctest --preset msvc-debug
+```
+
+Windows 检测测试目标会把 ONNX Runtime 和 OpenCV 的运行时 DLL 复制到测试输出目录。将 `vision_onnx_detector` 链接到其他可执行文件时，也必须部署匹配的 DLL。`onnx_detector_jsonl_test` 仅在本地存在 `models/detector.onnx` 时注册；ONNX 文件因体积/许可证原因由 `.gitignore` 排除。
 
 当前可执行文件提供最小解码验证入口：
 

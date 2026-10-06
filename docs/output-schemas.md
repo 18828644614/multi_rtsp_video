@@ -25,6 +25,8 @@
 }
 ```
 
+当前 `DetectionJsonlSink` 将 `DetectionResult.capture_time_ms` 映射为 `timestamp_ms`。`pts`、`time_base` 和 `monotonic_time_ms` 暂不写入该 schema；`track_id` 也会等 Tracker 接入后再输出。
+
 ## 2. Event JSONL
 
 ```json

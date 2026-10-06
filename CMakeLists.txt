@@ -9,6 +9,64 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 include(FetchContent)
 include(FindPackageHandleStandardArgs)
 find_package(Threads REQUIRED)
+find_package(OpenCV 4 REQUIRED COMPONENTS core imgproc)
+
+set(ONNXRUNTIME_ROOT "" CACHE PATH "ONNX Runtime C++ installation prefix")
+if(NOT ONNXRUNTIME_ROOT AND DEFINED ENV{ONNXRUNTIME_ROOT})
+    set(ONNXRUNTIME_ROOT "$ENV{ONNXRUNTIME_ROOT}")
+endif()
+
+find_path(ONNXRUNTIME_INCLUDE_DIR
+    NAMES onnxruntime_cxx_api.h
+    HINTS "${ONNXRUNTIME_ROOT}"
+    PATH_SUFFIXES include
+    NO_DEFAULT_PATH
+)
+find_library(ONNXRUNTIME_LIBRARY
+    NAMES onnxruntime
+    HINTS "${ONNXRUNTIME_ROOT}"
+    PATH_SUFFIXES lib
+    NO_DEFAULT_PATH
+)
+
+set(_onnxruntime_required_vars
+    ONNXRUNTIME_INCLUDE_DIR
+    ONNXRUNTIME_LIBRARY
+)
+if(WIN32)
+    find_file(ONNXRUNTIME_RUNTIME_LIBRARY
+        NAMES onnxruntime.dll
+        HINTS "${ONNXRUNTIME_ROOT}"
+        PATH_SUFFIXES lib bin
+        NO_DEFAULT_PATH
+    )
+    list(APPEND _onnxruntime_required_vars ONNXRUNTIME_RUNTIME_LIBRARY)
+endif()
+
+find_package_handle_standard_args(ONNXRUNTIME
+    REQUIRED_VARS ${_onnxruntime_required_vars}
+)
+if(NOT ONNXRUNTIME_FOUND)
+    message(FATAL_ERROR
+        "ONNX Runtime C++ was not found. Set ONNXRUNTIME_ROOT to the extracted CPU package "
+        "containing include/onnxruntime_cxx_api.h and lib/onnxruntime."
+    )
+endif()
+
+if(WIN32)
+    add_library(onnxruntime::onnxruntime SHARED IMPORTED GLOBAL)
+    set_target_properties(onnxruntime::onnxruntime PROPERTIES
+        IMPORTED_IMPLIB "${ONNXRUNTIME_LIBRARY}"
+        IMPORTED_LOCATION "${ONNXRUNTIME_RUNTIME_LIBRARY}"
+        INTERFACE_INCLUDE_DIRECTORIES "${ONNXRUNTIME_INCLUDE_DIR}"
+    )
+else()
+    add_library(onnxruntime::onnxruntime UNKNOWN IMPORTED GLOBAL)
+    set_target_properties(onnxruntime::onnxruntime PROPERTIES
+        IMPORTED_LOCATION "${ONNXRUNTIME_LIBRARY}"
+        INTERFACE_INCLUDE_DIRECTORIES "${ONNXRUNTIME_INCLUDE_DIR}"
+    )
+endif()
 
 if(MINGW)
     add_compile_options(-mthreads)
@@ -158,6 +216,49 @@ target_link_libraries(vision_manifest
 
 enable_project_warnings(vision_manifest)
 
+add_library(vision_detector STATIC
+    src/vision/fake_detector.cpp
+)
+
+target_include_directories(vision_detector
+    PUBLIC
+        ${PROJECT_SOURCE_DIR}/include
+)
+
+enable_project_warnings(vision_detector)
+
+add_library(vision_onnx_detector STATIC
+    src/vision/onnx_detector.cpp
+    src/vision/yolo26.cpp
+)
+
+target_include_directories(vision_onnx_detector
+    PUBLIC
+        ${PROJECT_SOURCE_DIR}/include
+)
+
+target_link_libraries(vision_onnx_detector
+    PUBLIC
+        vision_detector
+    PRIVATE
+        vision_manifest
+        ${OpenCV_LIBS}
+        onnxruntime::onnxruntime
+)
+
+enable_project_warnings(vision_onnx_detector)
+
+add_library(detection_jsonl_sink STATIC
+    src/output/detection_jsonl_sink.cpp
+)
+
+target_include_directories(detection_jsonl_sink
+    PUBLIC
+        ${PROJECT_SOURCE_DIR}/include
+)
+
+enable_project_warnings(detection_jsonl_sink)
+
 add_library(ffmpeg_decoder STATIC
     src/media/ffmpeg_mp4_decoder.cpp
 )
@@ -207,8 +308,10 @@ target_include_directories(multi_rtsp_video_analysis
 target_link_libraries(multi_rtsp_video_analysis
     PRIVATE
         app_config
+        detection_jsonl_sink
         ffmpeg_decoder
         frame_pipeline
+        vision_onnx_detector
 )
 
 if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 9)
@@ -244,6 +347,98 @@ target_include_directories(detection_test
 enable_project_warnings(detection_test)
 
 add_test(NAME detection_test COMMAND detection_test)
+
+add_executable(detection_jsonl_test
+    tests/detection_jsonl_test.cpp
+)
+
+target_include_directories(detection_jsonl_test
+    PRIVATE
+        ${PROJECT_SOURCE_DIR}/include
+)
+
+target_link_libraries(detection_jsonl_test
+    PRIVATE
+        detection_jsonl_sink
+        vision_detector
+        yaml-cpp::yaml-cpp
+)
+
+enable_project_warnings(detection_jsonl_test)
+
+add_test(NAME detection_jsonl_test COMMAND detection_jsonl_test)
+
+add_executable(yolo26_postprocessor_test
+    tests/yolo26_postprocessor_test.cpp
+)
+
+target_include_directories(yolo26_postprocessor_test
+    PRIVATE
+        ${PROJECT_SOURCE_DIR}/include
+)
+
+target_link_libraries(yolo26_postprocessor_test
+    PRIVATE
+        vision_onnx_detector
+)
+
+enable_project_warnings(yolo26_postprocessor_test)
+
+add_test(NAME yolo26_postprocessor_test COMMAND yolo26_postprocessor_test)
+
+add_executable(onnx_detector_jsonl_test
+    tests/onnx_detector_jsonl_test.cpp
+)
+
+target_include_directories(onnx_detector_jsonl_test
+    PRIVATE
+        ${PROJECT_SOURCE_DIR}/include
+)
+
+target_link_libraries(onnx_detector_jsonl_test
+    PRIVATE
+        detection_jsonl_sink
+        vision_onnx_detector
+        yaml-cpp::yaml-cpp
+)
+
+enable_project_warnings(onnx_detector_jsonl_test)
+
+if(EXISTS "${PROJECT_SOURCE_DIR}/models/detector.onnx")
+    add_test(
+        NAME onnx_detector_jsonl_test
+        COMMAND onnx_detector_jsonl_test
+            "${PROJECT_SOURCE_DIR}/models/detector.onnx"
+            "${PROJECT_SOURCE_DIR}/models/detector-manifest.yaml"
+    )
+else()
+    message(STATUS "Skipping onnx_detector_jsonl_test because models/detector.onnx is absent")
+endif()
+
+function(copy_detector_runtime_dependencies target)
+    if(WIN32)
+        add_custom_command(TARGET ${target} POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                "${ONNXRUNTIME_RUNTIME_LIBRARY}"
+                "$<TARGET_FILE_DIR:${target}>"
+            VERBATIM
+        )
+        foreach(opencv_target IN LISTS OpenCV_LIBS)
+            if(TARGET ${opencv_target})
+                add_custom_command(TARGET ${target} POST_BUILD
+                    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                        "$<TARGET_FILE:${opencv_target}>"
+                        "$<TARGET_FILE_DIR:${target}>"
+                    VERBATIM
+                )
+            endif()
+        endforeach()
+    endif()
+endfunction()
+
+copy_detector_runtime_dependencies(multi_rtsp_video_analysis)
+copy_detector_runtime_dependencies(yolo26_postprocessor_test)
+copy_detector_runtime_dependencies(onnx_detector_jsonl_test)
 
 add_executable(model_manifest_test
     tests/model_manifest_test.cpp

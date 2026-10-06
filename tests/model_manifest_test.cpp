@@ -64,8 +64,8 @@ std::string validManifest() {
            "  - car\n"
            "\n"
            "output:\n"
-           "  format: test-output-format\n"
-           "  confidence: objectness_times_class_score\n"
+           "  format: ultralytics_yolo26_raw\n"
+           "  confidence: max_class_score\n"
            "  nms: class_aware\n"
            "  nms_threshold: 0.45\n";
 }
@@ -86,7 +86,8 @@ void testLoadsValidManifest(const app_fs::path& root) {
     require(manifest.input.resize == vision::ResizeMode::Letterbox, "resize mode was not loaded");
     require(manifest.classes.size() == 2, "class list size was not loaded");
     require(manifest.classes[0] == "person" && manifest.classes[1] == "car", "class order was not preserved");
-    require(manifest.output.format == "test-output-format", "output format was not loaded");
+    require(manifest.output.format == "ultralytics_yolo26_raw", "output format was not loaded");
+    require(manifest.output.confidence == "max_class_score", "confidence rule was not loaded");
     require(manifest.output.nms == "class_aware", "NMS mode was not loaded");
     require(manifest.output.nms_threshold == 0.45, "NMS threshold was not loaded");
 }
@@ -143,6 +144,8 @@ void testRejectsInvalidCollectionsAndOutput(const app_fs::path& root) {
 
     const std::vector<std::pair<std::string, std::string>> cases = {
         {"output_format_placeholder", "  format: replace-with-model-output-format\n"},
+        {"unsupported_output_format", "  format: yolo_v8_xywh\n"},
+        {"unsupported_confidence_rule", "  confidence: objectness_times_class_score\n"},
         {"source_placeholder", "source: replace-with-authorized-source\n"},
         {"license_placeholder", "license: replace-with-model-license\n"},
         {"sha256_placeholder", "sha256: replace-with-sha256\n"},
@@ -152,17 +155,22 @@ void testRejectsInvalidCollectionsAndOutput(const app_fs::path& root) {
 
     for (const auto& testCase : cases) {
         std::string content = validManifest();
-        const std::string original = testCase.first == "output_format_placeholder"
-            ? "  format: test-output-format\n"
-            : testCase.first == "source_placeholder"
-                ? "source: https://example.invalid/test-detector.onnx\n"
-                : testCase.first == "license_placeholder"
-                    ? "license: Apache-2.0\n"
-                    : testCase.first == "sha256_placeholder"
-                        ? "sha256: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n"
-                        : testCase.first == "invalid_nms"
-                            ? "  nms: class_aware\n"
-                            : "  nms_threshold: 0.45\n";
+        std::string original;
+        if (testCase.first == "output_format_placeholder" || testCase.first == "unsupported_output_format") {
+            original = "  format: ultralytics_yolo26_raw\n";
+        } else if (testCase.first == "unsupported_confidence_rule") {
+            original = "  confidence: max_class_score\n";
+        } else if (testCase.first == "source_placeholder") {
+            original = "source: https://example.invalid/test-detector.onnx\n";
+        } else if (testCase.first == "license_placeholder") {
+            original = "license: Apache-2.0\n";
+        } else if (testCase.first == "sha256_placeholder") {
+            original = "sha256: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n";
+        } else if (testCase.first == "invalid_nms") {
+            original = "  nms: class_aware\n";
+        } else {
+            original = "  nms_threshold: 0.45\n";
+        }
         replaceOnce(content, original, testCase.second);
         const auto path = root / (testCase.first + ".yaml");
         writeFile(path, content);
@@ -189,7 +197,7 @@ void testRejectsUnknownAndMissingFields(const app_fs::path& root) {
 
     {
         std::string content = validManifest();
-        replaceOnce(content, "  format: test-output-format\n", "");
+        replaceOnce(content, "  format: ultralytics_yolo26_raw\n", "");
         const auto path = root / "missing_output_format.yaml";
         writeFile(path, content);
         expectManifestError([&] { vision::loadModelManifest(path); }, "missing output.format");

@@ -1,5 +1,6 @@
 #include "app/filesystem.hpp"
 #include <cstdlib>
+#include <fstream>
 #include <iostream>
 #include <stdexcept>
 #include <string>
@@ -7,7 +8,9 @@
 #include "app/version.hpp"
 #include "config/config.hpp"
 #include "media/ffmpeg_mp4_decoder.hpp"
+#include "output/detection_jsonl_sink.hpp"
 #include "pipeline/frame_pipeline.hpp"
+#include "vision/onnx_detector.hpp"
 #include <cstddef>
 
 namespace {
@@ -55,7 +58,9 @@ int decodeMp4(int argc, char* argv[]) {
 
 int processMp4(int argc, char* argv[]) {
     if (argc < 3) {
-        std::cerr << "usage: " << argv[0] << " --process-mp4 <input.mp4> [max-frames] [queue-capacity]\n";
+        std::cerr << "usage: " << argv[0]
+                  << " --process-mp4 <input.mp4> [max-frames] [queue-capacity]"
+                  << " [model.onnx] [manifest.yaml] [output.jsonl]\n";
         return 2;
     }
 
@@ -75,15 +80,34 @@ int processMp4(int argc, char* argv[]) {
         }
     }
 
+    const app_fs::path modelPath = argc >= 6 ? argv[5] : "models/detector.onnx";
+    const app_fs::path manifestPath = argc >= 7 ? argv[6] : "models/detector-manifest.yaml";
+    const app_fs::path outputPath = argc >= 8 ? argv[7] : "detections.jsonl";
+    if (argc > 8) {
+        throw std::invalid_argument("too many arguments for --process-mp4");
+    }
+
+    std::ofstream detectionOutput(outputPath.string(), std::ios::out | std::ios::trunc);
+    if (!detectionOutput.is_open()) {
+        throw std::runtime_error("failed to open detection output: " + outputPath.string());
+    }
+
+    vision::OnnxDetector detector(modelPath, manifestPath);
+    output::DetectionJsonlSink sink(detectionOutput);
+
     media::FfmpegMp4Decoder decoder(argv[2], "mp4");
     decoder.open();
     const media::VideoInfo& info = decoder.info();
     std::cout << "input: " << info.path.string() << "\n";
     std::cout << "codec: " << info.codec_name << "\n";
     std::cout << "size: " << info.width << "x" << info.height << "\n";
+    std::cout << "model: " << modelPath.string() << "\n";
+    std::cout << "manifest: " << manifestPath.string() << "\n";
+    std::cout << "detection_output: " << outputPath.string() << "\n";
 
     std::size_t producedFrames = 0;
     std::size_t consumedFrames = 0;
+    std::size_t detectedObjects = 0;
     pipeline::FramePipeline framePipeline({
         static_cast<std::size_t>(queueCapacity),
         0,
@@ -105,11 +129,21 @@ int processMp4(int argc, char* argv[]) {
             if (frame.image.empty()) {
                 throw std::runtime_error("consumer received a frame with no image data");
             }
+
+            const vision::DetectionResult result = detector.detect(frame);
+            detectedObjects += result.detections.size();
+            sink.write(result);
             ++consumedFrames;
         });
 
+    detectionOutput.flush();
+    if (!detectionOutput) {
+        throw std::runtime_error("failed to flush detection output: " + outputPath.string());
+    }
+
     std::cout << "produced_frames: " << producedFrames << "\n";
     std::cout << "consumed_frames: " << consumedFrames << "\n";
+    std::cout << "detected_objects: " << detectedObjects << "\n";
     std::cout << "queue_peak: " << stats.peak_size << " / " << queueCapacity << "\n";
     std::cout << "queue_dropped: " << stats.dropped_oldest + stats.dropped_newest + stats.expired << "\n";
     return 0;
