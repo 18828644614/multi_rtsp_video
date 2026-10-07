@@ -1,7 +1,7 @@
 #pragma once
 
 #include "app/filesystem.hpp"
-#include "media/frame.hpp"
+#include "media/frame_source.hpp"
 
 #include <memory>
 #include <string>
@@ -20,21 +20,21 @@ struct VideoInfo {
     double average_frame_rate = 0.0;
 };
 
-class FfmpegMp4Decoder {
+class FfmpegMp4Decoder final : public FrameSource {
 public:
     explicit FfmpegMp4Decoder(app_fs::path path, std::string streamId = "mp4");
-    ~FfmpegMp4Decoder();
+    ~FfmpegMp4Decoder() override;
 
     FfmpegMp4Decoder(const FfmpegMp4Decoder&) = delete;
     FfmpegMp4Decoder& operator=(const FfmpegMp4Decoder&) = delete;
     FfmpegMp4Decoder(FfmpegMp4Decoder&&) noexcept;
     FfmpegMp4Decoder& operator=(FfmpegMp4Decoder&&) noexcept;
 
-    void open();
-    bool read(FramePacket& frame);
-    void close() noexcept;
+    void open() override;
+    FrameReadResult read(FramePacket& frame) override;
+    void close() noexcept override;
 
-    bool isOpen() const noexcept;
+    bool isOpen() const noexcept override;
     const VideoInfo& info() const;
 
 private:

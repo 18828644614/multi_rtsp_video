@@ -13,6 +13,7 @@
 - [x] Phase 7: 实现 YAML 配置读取与启动校验
 - [x] Phase 8: 实现 FrameQueue 基础设施
 - [x] Phase 9: 实现单路生产者—消费者流水线
+- [x] Phase 10: 收口配置、时间戳与模块契约
 
 ## Key Questions
 1. 项目的入口在哪里，启动时依次加载什么？
@@ -30,6 +31,11 @@
 - YAML 使用固定版本 yaml-cpp-0.9.0，由 CMake FetchContent 管理。
 - 相对路径按程序当前工作目录解析；运行程序时从项目根目录启动。
 - 配置阶段校验模型、manifest、MP4 路径、阈值、队列策略、流类型、URL 格式、重复 stream ID 和未知字段。
+- 相对路径继续按程序当前工作目录解析，保持既有运行约定。
+- 模型输入输出规格由 manifest 管理；置信度与类别过滤由运行 YAML 管理；NMS 阈值保留在 manifest，删除 YAML 中重复声明。
+- FrameMetadata 统一携带流 ID、序号、输入 epoch、PTS/time_base、接收墙钟/单调时间和尺寸。
+- MP4 EOF 与未来 RTSP 重连错误使用不同读取状态；本阶段只定义契约，不实现 RTSP。
+- MP4 的 Block 队列不允许帧龄淘汰；max_age_ms 为 0 表示关闭帧龄限制。
 
 ## Errors Encountered
 - apply_patch 返回 Access is denied；改用当前工作区允许的 PowerShell 文件写入方式。
@@ -45,7 +51,7 @@
 - CMakePresets.json：当前 MSVC Debug 配置、构建和测试预设。
 - include/config/config.hpp：配置数据结构和接口。
 - src/config/config.cpp：YAML 解析、字段校验和路径校验。
-- src/main.cpp：读取配置并在启动阶段校验。
+- src/main.cpp：读取配置、启动校验并按 YAML 驱动单路 MP4。
 - tests/config_test.cpp：有效配置和错误配置测试。
 - include/media/frame.hpp：跨线程帧数据契约。
 - include/pipeline/frame_queue.hpp、src/pipeline/frame_queue.cpp：有界 FrameQueue。
@@ -61,4 +67,4 @@
 - MSVC 构建需要配置包含 `include/` 和 `lib/*.lib` 的 FFmpeg 开发包。
 
 ## Status
-**In Progress** - 已完成项目分析、配置、单路 MP4 解码、FrameQueue 及单路生产者—消费者流水线；下一步接入单路 Detector。
+**Completed** - 已完成配置、时间戳、输入源、检测结果和 JSONL 契约收口，并将单路 MP4 入口改为 YAML 驱动；下一阶段可进入 Tracker。

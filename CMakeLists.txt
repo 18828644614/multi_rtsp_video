@@ -13,7 +13,13 @@ find_package(OpenCV 4 REQUIRED COMPONENTS core imgproc)
 
 set(ONNXRUNTIME_ROOT "" CACHE PATH "ONNX Runtime C++ installation prefix")
 if(NOT ONNXRUNTIME_ROOT AND DEFINED ENV{ONNXRUNTIME_ROOT})
-    set(ONNXRUNTIME_ROOT "$ENV{ONNXRUNTIME_ROOT}")
+    set(ONNXRUNTIME_ROOT "$ENV{ONNXRUNTIME_ROOT}" CACHE PATH "ONNX Runtime C++ installation prefix" FORCE)
+endif()
+if(NOT ONNXRUNTIME_ROOT AND WIN32)
+    set(_local_onnxruntime_root "D:/Onnx/onnxruntime-win-x64-1.30.0")
+    if(EXISTS "${_local_onnxruntime_root}/include/onnxruntime_cxx_api.h")
+        set(ONNXRUNTIME_ROOT "${_local_onnxruntime_root}" CACHE PATH "ONNX Runtime C++ installation prefix" FORCE)
+    endif()
 endif()
 
 find_path(ONNXRUNTIME_INCLUDE_DIR

@@ -20,18 +20,19 @@ FakeDetector::FakeDetector(std::uint32_t class_id, std::string label, double con
 
 DetectionResult FakeDetector::detect(const media::FramePacket& frame) {
     DetectionResult result;
-    result.stream_id = frame.stream_id;
-    result.sequence = frame.sequence;
-    result.pts = frame.pts;
-    result.time_base = frame.time_base;
-    result.capture_time_ms = frame.capture_time_ms;
-    result.monotonic_time_ms = frame.monotonic_time_ms;
-    result.width = frame.width;
-    result.height = frame.height;
+    result.metadata.stream_id = frame.metadata.stream_id;
+    result.metadata.sequence = frame.metadata.sequence;
+    result.metadata.source_epoch = frame.metadata.source_epoch;
+    result.metadata.pts = frame.metadata.pts;
+    result.metadata.time_base = frame.metadata.time_base;
+    result.metadata.received_at_unix_ms = frame.metadata.received_at_unix_ms;
+    result.metadata.received_at_steady_ms = frame.metadata.received_at_steady_ms;
+    result.metadata.width = frame.metadata.width;
+    result.metadata.height = frame.metadata.height;
 
-    if (frame.width > 0 && frame.height > 0) {
-        const double width = static_cast<double>(frame.width);
-        const double height = static_cast<double>(frame.height);
+    if (frame.metadata.width > 0 && frame.metadata.height > 0) {
+        const double width = static_cast<double>(frame.metadata.width);
+        const double height = static_cast<double>(frame.metadata.height);
         result.detections.push_back({
             class_id_,
             label_,

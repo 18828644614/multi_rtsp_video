@@ -18,16 +18,17 @@ void require(bool condition, const char* message) {
 
 media::FramePacket makeFrame() {
     media::FramePacket frame;
-    frame.stream_id = "cam-01";
-    frame.sequence = 1024;
-    frame.pts = 9000;
-    frame.time_base = {1, 90000};
-    frame.width = 640;
-    frame.height = 480;
+    frame.metadata.stream_id = "cam-01";
+    frame.metadata.sequence = 1024;
+    frame.metadata.source_epoch = 3;
+    frame.metadata.pts = 9000;
+    frame.metadata.time_base = {1, 90000};
+    frame.metadata.width = 640;
+    frame.metadata.height = 480;
     frame.stride = 640 * 3;
-    frame.capture_time_ms = 1730000000123;
-    frame.monotonic_time_ms = 987654321;
-    frame.image.assign(static_cast<std::size_t>(frame.stride * frame.height), 0);
+    frame.metadata.received_at_unix_ms = 1730000000123;
+    frame.metadata.received_at_steady_ms = 987654321;
+    frame.image.assign(static_cast<std::size_t>(frame.stride * frame.metadata.height), 0);
     return frame;
 }
 
@@ -35,12 +36,12 @@ void testFakeDetectorAndJsonlSink() {
     vision::FakeDetector detector(0, "person", 0.9);
     const vision::DetectionResult result = detector.detect(makeFrame());
 
-    require(result.stream_id == "cam-01", "fake detector did not preserve stream ID");
-    require(result.sequence == 1024, "fake detector did not preserve sequence");
-    require(result.capture_time_ms == 1730000000123, "fake detector did not preserve timestamp");
-    require(result.width == 640 && result.height == 480, "fake detector did not preserve dimensions");
+    require(result.metadata.stream_id == "cam-01", "fake detector did not preserve stream ID");
+    require(result.metadata.sequence == 1024, "fake detector did not preserve sequence");
+    require(result.metadata.received_at_unix_ms == 1730000000123, "fake detector did not preserve timestamp");
+    require(result.metadata.width == 640 && result.metadata.height == 480, "fake detector did not preserve dimensions");
     require(result.detections.size() == 1, "fake detector did not emit its deterministic detection");
-    require(result.detections.front().bbox.isWithinFrame(result.width, result.height),
+    require(result.detections.front().bbox.isWithinFrame(result.metadata.width, result.metadata.height),
             "fake detector emitted an invalid bounding box");
 
     std::ostringstream serialized;
@@ -52,12 +53,17 @@ void testFakeDetectorAndJsonlSink() {
     require(jsonl.find('\n') == jsonl.size() - 1, "JSONL output contained more than one line");
 
     const YAML::Node document = YAML::Load(jsonl.substr(0, jsonl.size() - 1));
-    require(document["schema_version"].as<int>() == 1, "schema version was incorrect");
+    require(document["schema_version"].as<int>() == 2, "schema version was incorrect");
     require(document["type"].as<std::string>() == "detection", "JSON type was incorrect");
     require(document["stream_id"].as<std::string>() == "cam-01", "stream ID was incorrect");
+    require(document["source_epoch"].as<std::uint64_t>() == 3, "source epoch was incorrect");
     require(document["sequence"].as<std::uint64_t>() == 1024, "sequence was incorrect");
     require(document["timestamp_ms"].as<std::int64_t>() == 1730000000123,
             "timestamp was incorrect");
+    require(document["pts"].as<std::int64_t>() == 9000, "PTS was incorrect");
+    require(document["time_base"]["numerator"].as<int>() == 1 &&
+                document["time_base"]["denominator"].as<int>() == 90000,
+            "time base was incorrect");
     require(document["width"].as<int>() == 640 && document["height"].as<int>() == 480,
             "dimensions were incorrect");
     require(document["objects"].size() == 1, "object count was incorrect");
@@ -69,9 +75,9 @@ void testFakeDetectorAndJsonlSink() {
 
 void testJsonStringEscaping() {
     vision::DetectionResult result;
-    result.stream_id = "cam\"\\\n01";
-    result.width = 100;
-    result.height = 100;
+    result.metadata.stream_id = "cam\"\\\n01";
+    result.metadata.width = 100;
+    result.metadata.height = 100;
     result.detections.push_back({0, "line\n\"label", 0.5, {1.0, 2.0, 3.0, 4.0}});
 
     std::ostringstream serialized;
@@ -88,8 +94,8 @@ void testJsonStringEscaping() {
 
 void testSinkRejectsInvalidDetectionValues() {
     vision::DetectionResult result;
-    result.width = 100;
-    result.height = 100;
+    result.metadata.width = 100;
+    result.metadata.height = 100;
     result.detections.push_back({0, "person", 1.1, {1.0, 2.0, 3.0, 4.0}});
 
     std::ostringstream serialized;

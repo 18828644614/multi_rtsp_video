@@ -37,16 +37,16 @@ void validateFrame(const media::FramePacket& frame) {
     if (frame.pixel_format != media::PixelFormat::Bgr24) {
         throw std::invalid_argument("YOLO26 detector requires BGR24 frames");
     }
-    if (frame.width <= 0 || frame.height <= 0) {
+    if (frame.metadata.width <= 0 || frame.metadata.height <= 0) {
         throw std::invalid_argument("frame dimensions must be positive");
     }
-    if (frame.width > std::numeric_limits<int>::max() / 3 ||
-        frame.stride < frame.width * 3) {
+    if (frame.metadata.width > std::numeric_limits<int>::max() / 3 ||
+        frame.stride < frame.metadata.width * 3) {
         throw std::invalid_argument("frame stride is smaller than its BGR24 row size");
     }
 
     const std::size_t stride = static_cast<std::size_t>(frame.stride);
-    const std::size_t height = static_cast<std::size_t>(frame.height);
+    const std::size_t height = static_cast<std::size_t>(frame.metadata.height);
     if (stride > std::numeric_limits<std::size_t>::max() / height ||
         frame.image.size() < stride * height) {
         throw std::invalid_argument("frame image buffer is smaller than stride * height");
@@ -80,18 +80,18 @@ Yolo26Input preprocessYolo26Frame(
     validateFrame(frame);
 
     const double scale = std::min(
-        static_cast<double>(input_spec.width) / frame.width,
-        static_cast<double>(input_spec.height) / frame.height);
-    const int resizedWidth = std::max(1, roundLikeUltralytics(frame.width * scale));
-    const int resizedHeight = std::max(1, roundLikeUltralytics(frame.height * scale));
+        static_cast<double>(input_spec.width) / frame.metadata.width,
+        static_cast<double>(input_spec.height) / frame.metadata.height);
+    const int resizedWidth = std::max(1, roundLikeUltralytics(frame.metadata.width * scale));
+    const int resizedHeight = std::max(1, roundLikeUltralytics(frame.metadata.height * scale));
     const int totalPadX = input_spec.width - resizedWidth;
     const int totalPadY = input_spec.height - resizedHeight;
     const int left = roundLikeUltralytics(totalPadX / 2.0 - 0.1);
     const int top = roundLikeUltralytics(totalPadY / 2.0 - 0.1);
 
     const cv::Mat source(
-        frame.height,
-        frame.width,
+        frame.metadata.height,
+        frame.metadata.width,
         CV_8UC3,
         const_cast<std::uint8_t*>(frame.image.data()),
         static_cast<std::size_t>(frame.stride));
@@ -130,7 +130,7 @@ Yolo26Input preprocessYolo26Frame(
         }
     }
 
-    prepared.transform = {frame.width, frame.height, scale, left, top};
+    prepared.transform = {frame.metadata.width, frame.metadata.height, scale, left, top};
     return prepared;
 }
 
@@ -141,7 +141,8 @@ std::vector<Detection> decodeYolo26Output(
     const ModelManifest& manifest,
     const Yolo26Transform& transform,
     double confidence_threshold,
-    std::size_t max_detections) {
+    std::size_t max_detections,
+    const std::vector<std::uint32_t>& class_filter) {
     if (output == nullptr) {
         throw std::invalid_argument("YOLO26 output data is null");
     }
@@ -175,6 +176,13 @@ std::vector<Detection> decodeYolo26Output(
         transform.pad_left < 0 || transform.pad_top < 0) {
         throw std::invalid_argument("YOLO26 letterbox transform is invalid");
     }
+    std::vector<bool> allowedClasses(manifest.classes.size(), class_filter.empty());
+    for (const std::uint32_t classId : class_filter) {
+        if (classId >= manifest.classes.size()) {
+            throw std::invalid_argument("YOLO26 class filter contains an invalid class ID");
+        }
+        allowedClasses[classId] = true;
+    }
     if (max_detections == 0) {
         return {};
     }
@@ -205,7 +213,7 @@ std::vector<Detection> decodeYolo26Output(
                 bestClass = static_cast<std::uint32_t>(classIndex);
             }
         }
-        if (bestScore < confidence_threshold) {
+        if (bestScore < confidence_threshold || !allowedClasses[bestClass]) {
             continue;
         }
 

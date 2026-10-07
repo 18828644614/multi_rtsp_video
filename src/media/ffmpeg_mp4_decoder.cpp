@@ -69,7 +69,7 @@ struct FfmpegMp4Decoder::Impl {
         codec = nullptr;
         input_eof = false;
         flush_sent = false;
-        next_sequence = 0;
+
         source_width = 0;
         source_height = 0;
         source_pixel_format = AV_PIX_FMT_NONE;
@@ -121,7 +121,8 @@ struct FfmpegMp4Decoder::Impl {
     bool input_eof = false;
     bool flush_sent = false;
     bool opened = false;
-    uint64_t next_sequence = 0;
+    std::uint64_t next_sequence = 0;
+    std::uint64_t source_epoch = 0;
 };
 
 FfmpegMp4Decoder::FfmpegMp4Decoder(app_fs::path path, std::string streamId)
@@ -204,13 +205,14 @@ void FfmpegMp4Decoder::open() {
                                          : impl_->video_stream->r_frame_rate;
         impl_->info.average_frame_rate = rationalToDouble(frameRate);
         impl_->opened = true;
+        ++impl_->source_epoch;
     } catch (...) {
         impl_->release();
         throw;
     }
 }
 
-bool FfmpegMp4Decoder::read(FramePacket& output) {
+FrameReadResult FfmpegMp4Decoder::read(FramePacket& output) {
     if (!impl_->opened) {
         throw std::logic_error("MP4 decoder is not open");
     }
@@ -243,24 +245,30 @@ bool FfmpegMp4Decoder::read(FramePacket& output) {
                 throw std::runtime_error("sws_scale returned an incomplete frame");
             }
 
-            output.stream_id = impl_->stream_id;
-            output.sequence = impl_->next_sequence++;
-            output.pts = impl_->frame->best_effort_timestamp != AV_NOPTS_VALUE
-                             ? impl_->frame->best_effort_timestamp
-                             : impl_->frame->pts;
-            output.time_base = impl_->info.time_base;
-            output.width = width;
-            output.height = height;
+            FrameMetadata& metadata = output.metadata;
+            metadata.stream_id = impl_->stream_id;
+            metadata.sequence = impl_->next_sequence++;
+            metadata.source_epoch = impl_->source_epoch;
+            metadata.pts.reset();
+            const int64_t pts = impl_->frame->best_effort_timestamp != AV_NOPTS_VALUE
+                                    ? impl_->frame->best_effort_timestamp
+                                    : impl_->frame->pts;
+            if (pts != AV_NOPTS_VALUE) {
+                metadata.pts = pts;
+            }
+            metadata.time_base = impl_->info.time_base;
+            metadata.width = width;
+            metadata.height = height;
+            metadata.received_at_unix_ms = wallClockMilliseconds();
+            metadata.received_at_steady_ms = monotonicClockMilliseconds();
             output.stride = static_cast<int>(stride);
             output.pixel_format = PixelFormat::Bgr24;
-            output.capture_time_ms = wallClockMilliseconds();
-            output.monotonic_time_ms = monotonicClockMilliseconds();
             av_frame_unref(impl_->frame);
-            return true;
+            return {FrameReadStatus::Frame, {}};
         }
 
         if (result == AVERROR_EOF) {
-            return false;
+            return {FrameReadStatus::EndOfStream, {}};
         }
         if (result != AVERROR(EAGAIN)) {
             fail("avcodec_receive_frame", result);
@@ -275,7 +283,7 @@ bool FfmpegMp4Decoder::read(FramePacket& output) {
                 impl_->flush_sent = true;
                 continue;
             }
-            return false;
+            return {FrameReadStatus::EndOfStream, {}};
         }
 
         result = av_read_frame(impl_->format_context, impl_->packet);

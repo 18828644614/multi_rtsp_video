@@ -49,6 +49,8 @@ Windows 当前使用 MSVC，应使用与 MSVC ABI 匹配的 FFmpeg 开发文件�
 - `ONNXRUNTIME_ROOT` 指向解压后的 ONNX Runtime C++ CPU 包根目录；Windows 需要 `include/onnxruntime_cxx_api.h`、`lib/onnxruntime.lib` 和 `lib/onnxruntime.dll`。
 - Windows 上应使用与 MSVC/目标架构匹配的 OpenCV 和 ONNX Runtime 包。当前验证基线为 OpenCV 4.12.0 与 ONNX Runtime 1.30.0 CPU 包。
 
+当前 Windows 工作区的 CMake 会在未设置 ONNXRUNTIME_ROOT 时自动尝试 D:/Onnx/onnxruntime-win-x64-1.30.0；其他机器仍应通过 ONNXRUNTIME_ROOT 或 -DONNXRUNTIME_ROOT=... 指定实际路径。
+
 MSVC x64 配置示例：
 
 ```powershell

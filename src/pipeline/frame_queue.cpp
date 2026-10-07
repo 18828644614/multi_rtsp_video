@@ -127,10 +127,12 @@ int64_t FrameQueue::monotonicNowMs() {
 }
 
 bool FrameQueue::isExpired(const media::FramePacket& frame, int64_t now_ms) const {
-    if (options_.max_age_ms <= 0 || frame.monotonic_time_ms <= 0 || now_ms < frame.monotonic_time_ms) {
+    if (options_.max_age_ms <= 0 || !frame.metadata.received_at_steady_ms.has_value() ||
+        frame.metadata.received_at_steady_ms.value() <= 0 ||
+        now_ms < frame.metadata.received_at_steady_ms.value()) {
         return false;
     }
-    return now_ms - frame.monotonic_time_ms > options_.max_age_ms;
+    return now_ms - frame.metadata.received_at_steady_ms.value() > options_.max_age_ms;
 }
 
 void FrameQueue::purgeExpiredLocked(int64_t now_ms) {

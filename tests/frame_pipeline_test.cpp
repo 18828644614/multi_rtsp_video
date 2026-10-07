@@ -11,10 +11,10 @@ namespace {
 
 media::FramePacket makeFrame(uint64_t sequence) {
     media::FramePacket frame;
-    frame.stream_id = "test";
-    frame.sequence = sequence;
-    frame.width = 1;
-    frame.height = 1;
+    frame.metadata.stream_id = "test";
+    frame.metadata.sequence = sequence;
+    frame.metadata.width = 1;
+    frame.metadata.height = 1;
     frame.stride = 3;
     frame.image = {1, 2, 3};
     return frame;
@@ -44,7 +44,7 @@ void testProducerConsumerFlow() {
         },
         [&](const media::FramePacket& frame) {
             consumerThreadId = std::this_thread::get_id();
-            consumedSequences.push_back(frame.sequence);
+            consumedSequences.push_back(frame.metadata.sequence);
             std::this_thread::sleep_for(std::chrono::milliseconds(1));
         });
 

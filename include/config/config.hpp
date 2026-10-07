@@ -1,6 +1,8 @@
 #pragma once
 
 #include "app/filesystem.hpp"
+
+#include <cstddef>
 #include <stdexcept>
 #include <string>
 #include <vector>
@@ -32,10 +34,7 @@ struct AppSettings {
 struct ModelSettings {
     app_fs::path path;
     app_fs::path manifest;
-    int input_width = 0;
-    int input_height = 0;
     double confidence_threshold = 0.0;
-    double nms_threshold = 0.0;
     std::vector<std::string> class_filter;
 };
 
@@ -65,8 +64,6 @@ struct ReconnectSettings {
 struct RulesSettings {
     bool tracker_enabled = false;
     int cooldown_ms = 0;
-    std::size_t roi_count = 0;
-    std::size_t line_count = 0;
 };
 
 struct StreamSettings {
@@ -79,6 +76,7 @@ struct StreamSettings {
     bool loop = false;
     ReconnectSettings reconnect;
     RulesSettings rules;
+    QueueSettings queue;
 };
 
 struct AppConfig {
@@ -97,4 +95,3 @@ std::string toString(StreamType type);
 std::string toString(DropPolicy policy);
 
 }
-

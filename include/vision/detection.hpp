@@ -33,14 +33,7 @@ struct Detection {
 };
 
 struct DetectionResult {
-    std::string stream_id;
-    std::uint64_t sequence = 0;
-    std::int64_t pts = 0;
-    media::Rational time_base;
-    std::int64_t capture_time_ms = 0;
-    std::int64_t monotonic_time_ms = 0;
-    int width = 0;
-    int height = 0;
+    media::FrameMetadata metadata;
     std::vector<Detection> detections;
 };
 

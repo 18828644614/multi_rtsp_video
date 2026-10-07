@@ -61,10 +61,10 @@ void setBox(
 
 void testPreprocessBgrLetterboxToRgbNchw() {
     media::FramePacket frame;
-    frame.width = 2;
-    frame.height = 4;
+    frame.metadata.width = 2;
+    frame.metadata.height = 4;
     frame.stride = 2 * 3;
-    frame.image.resize(static_cast<std::size_t>(frame.stride * frame.height));
+    frame.image.resize(static_cast<std::size_t>(frame.stride * frame.metadata.height));
     for (std::size_t index = 0; index < frame.image.size(); index += 3) {
         frame.image[index] = 10;
         frame.image[index + 1] = 20;
@@ -90,8 +90,8 @@ void testPreprocessBgrLetterboxToRgbNchw() {
 
 void testRejectsInvalidFramesAndUnsupportedInput() {
     media::FramePacket frame;
-    frame.width = 4;
-    frame.height = 4;
+    frame.metadata.width = 4;
+    frame.metadata.height = 4;
     frame.stride = 4 * 3;
     frame.image.resize(1);
 
@@ -103,7 +103,7 @@ void testRejectsInvalidFramesAndUnsupportedInput() {
     }
     require(rejected, "short frame buffer was accepted");
 
-    frame.image.resize(static_cast<std::size_t>(frame.stride * frame.height));
+    frame.image.resize(static_cast<std::size_t>(frame.stride * frame.metadata.height));
     auto unsupported = inputSpec(4, 4);
     unsupported.color = vision::ColorOrder::Bgr;
     rejected = false;
@@ -134,7 +134,7 @@ void testYolo26RawDecodeAndClassAwareNms() {
     const vision::detail::Yolo26Transform transform{100, 100, 1.0, 0, 0};
     vision::ModelManifest manifest = outputManifest();
     const auto detections = vision::detail::decodeYolo26Output(
-        output.data(), output.size(), candidateCount, manifest, transform, 0.25, 10);
+        output.data(), output.size(), candidateCount, manifest, transform, 0.25, 10, {});
 
     require(detections.size() == 2, "class-aware NMS kept an incorrect number of detections");
     require(detections[0].class_id == 0 && detections[0].label == "person",
@@ -148,8 +148,12 @@ void testYolo26RawDecodeAndClassAwareNms() {
 
     manifest.output.nms = "class_agnostic";
     const auto classAgnostic = vision::detail::decodeYolo26Output(
-        output.data(), output.size(), candidateCount, manifest, transform, 0.25, 10);
+        output.data(), output.size(), candidateCount, manifest, transform, 0.25, 10, {});
     require(classAgnostic.size() == 1, "class-agnostic NMS did not suppress cross-class overlap");
+    const auto filtered = vision::detail::decodeYolo26Output(
+        output.data(), output.size(), candidateCount, outputManifest(), transform, 0.25, 10, {1});
+    require(filtered.size() == 1 && filtered.front().class_id == 1,
+            "class filter did not remove disallowed detections");
 }
 
 void testUndoLetterboxAndLimitDetections() {
@@ -162,7 +166,7 @@ void testUndoLetterboxAndLimitDetections() {
 
     const vision::detail::Yolo26Transform transform{100, 50, 2.0, 0, 15};
     const auto detections = vision::detail::decodeYolo26Output(
-        output.data(), output.size(), candidateCount, outputManifest(), transform, 0.25, 1);
+        output.data(), output.size(), candidateCount, outputManifest(), transform, 0.25, 1, {});
     require(detections.size() == 1, "maximum detection limit was not applied");
     require(std::abs(detections[0].bbox.x - 40.0) < 1e-6 &&
             std::abs(detections[0].bbox.y - 20.0) < 1e-6 &&

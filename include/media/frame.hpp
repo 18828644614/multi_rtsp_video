@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -11,22 +12,27 @@ struct Rational {
     int denominator = 1;
 };
 
+struct FrameMetadata {
+    std::string stream_id;
+    std::uint64_t sequence = 0;
+    std::uint64_t source_epoch = 0;
+    std::optional<std::int64_t> pts;
+    Rational time_base;
+    std::int64_t received_at_unix_ms = 0;
+    std::optional<std::int64_t> received_at_steady_ms;
+    int width = 0;
+    int height = 0;
+};
+
 enum class PixelFormat {
     Bgr24
 };
 
 struct FramePacket {
-    std::string stream_id;
-    uint64_t sequence = 0;
-    int64_t pts = 0;
-    Rational time_base;
-    int width = 0;
-    int height = 0;
+    FrameMetadata metadata;
     int stride = 0;
     PixelFormat pixel_format = PixelFormat::Bgr24;
-    int64_t capture_time_ms = 0;
-    int64_t monotonic_time_ms = 0;
-    std::vector<uint8_t> image;
+    std::vector<std::uint8_t> image;
 };
 
 using DecodedFrame = FramePacket;

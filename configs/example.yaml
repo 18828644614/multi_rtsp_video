@@ -5,11 +5,8 @@ app:
 
 model:
   path: models/detector.onnx
-  manifest: models/model-manifest.example.yaml
-  input_width: 640
-  input_height: 640
+  manifest: models/detector-manifest.yaml
   confidence_threshold: 0.40
-  nms_threshold: 0.45
   class_filter: [person, car, truck, bus]
 
 queue:
@@ -30,6 +27,10 @@ streams:
     path: data/demo.mp4
     realtime: true
     loop: false
+    queue:
+      max_frames: 4
+      max_age_ms: 0
+      drop_policy: block
     reconnect:
       enabled: false
     rules:

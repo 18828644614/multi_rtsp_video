@@ -824,3 +824,222 @@ CreateProcess rejected: blocked by policy
 - Tags: integration-test, powershell, policy
 
 ---
+
+## [ERR-20261007-001] apply_patch_unavailable
+
+**Logged**: 2026-10-07T12:00:00+08:00
+**Priority**: low
+**Status**: resolved
+**Area**: infra
+
+### Summary
+The generated `apply_patch` wrapper returned `Access is denied`, and the documented Git Bash executable does not provide an `apply_patch` command.
+
+### Error
+```text
+Access is denied.
+/usr/bin/bash: line 1: apply_patch: command not found
+```
+
+### Context
+- Attempted a small patch to `task_plan.md` through the PowerShell wrapper.
+- Retried through `D:\github\softwoker\Git\bin\bash.exe`; that shell has no `apply_patch` executable.
+
+### Suggested Fix
+Use narrowly scoped PowerShell text replacements as the existing workspace fallback, then inspect the diff and run tests.
+
+### Metadata
+- Reproducible: yes
+- Related Files: task_plan.md
+- See Also: ERR-20261006-008, ERR-20261006-010
+
+### Resolution
+- **Resolved**: 2026-10-07T12:00:00+08:00
+- **Notes**: Proceeding with constrained text replacement and diff validation.
+
+## [ERR-20261007-002] config_test_text_anchor
+
+**Logged**: 2026-10-07
+**Priority**: low
+**Status**: resolved
+**Area**: tests
+
+### Summary
+A PowerShell replacement anchor matched multiple C++ YAML fixture lines, so the test edit was stopped before writing.
+
+### Error
+```text
+Expected one match in tests/config_test.cpp, found 2
+```
+
+### Context
+- A guarded text replacement expected a unique fixture anchor while updating the config test.
+- The replacement helper aborted before writing `tests/config_test.cpp`; the preceding parser edit had already completed.
+
+### Suggested Fix
+Use smaller literal anchors and verify each file after each replacement.
+
+### Metadata
+- Reproducible: yes
+- Related Files: tests/config_test.cpp, src/config/config.cpp
+- Tags: powershell, text-replacement, tests
+
+### Resolution
+- **Resolved**: 2026-10-07
+- **Notes**: Will resume using exact snippets and inspect the file diff.
+
+## [ERR-20261007-003] decoder_migration_duplicate_anchor
+
+**Logged**: 2026-10-07
+**Priority**: medium
+**Status**: resolved
+**Area**: backend
+
+### Summary
+A guarded replacement for the MP4 decoder matched two identical EOF return statements, stopping the migration after several earlier replacements had already been written.
+
+### Error
+```text
+Expected one match in src/media/ffmpeg_mp4_decoder.cpp, found 2
+```
+
+### Context
+- The decoder was being changed from `bool read()` to `FrameReadResult read()`.
+- Two `return false;` statements exist for decoder EOF paths; one command aborted after prior replacements.
+
+### Suggested Fix
+Inspect the current file, then replace the complete `read()` function or use contextual anchors for each EOF path.
+
+### Metadata
+- Reproducible: yes
+- Related Files: src/media/ffmpeg_mp4_decoder.cpp
+- Tags: migration, decoder, text-replacement
+`n### Resolution`n- **Resolved**: 2026-10-07`n- **Notes**: Replaced both EOF branches with explicit `EndOfStream` results and completed the decoder migration.`n
+## [ERR-20261007-004] stale_detection_jsonl_schema_test
+
+**Logged**: 2026-10-07
+**Priority**: low
+**Status**: resolved
+**Area**: tests
+
+### Summary
+The detection JSONL sink was intentionally upgraded to schema version 2, but the existing sink test still expected version 1.
+
+### Error
+```text
+detection_jsonl_test failed: schema version was incorrect
+```
+
+### Context
+- The new JSONL includes `source_epoch`, explicit received time, optional PTS, and `time_base`.
+- Only the test assertion was stale; the sink compiled and produced valid output.
+
+### Suggested Fix
+Update the fixture assertion and add checks for the new metadata fields.
+
+### Metadata
+- Reproducible: yes
+- Related Files: tests/detection_jsonl_test.cpp, src/output/detection_jsonl_sink.cpp
+- Tags: jsonl, schema, tests
+
+### Resolution
+- **Resolved**: 2026-10-07
+- **Notes**: Updating the test to assert schema version 2 and metadata fields.
+
+## [ERR-20261007-005] integration_command_policy_rejection
+
+**Logged**: 2026-10-07
+**Priority**: low
+**Status**: resolved
+**Area**: tests
+
+### Summary
+A combined PowerShell integration command for cleanup, MP4 processing, and JSONL reading was rejected by terminal policy.
+
+### Error
+```text
+CreateProcess rejected ... blocked by policy
+```
+
+### Context
+- The command chained temporary-file cleanup, executable invocation, exit-code output, and file reading.
+- Build and CTest were already successful.
+
+### Suggested Fix
+Split integration validation into short single-purpose commands.
+
+### Metadata
+- Reproducible: unknown
+- Related Files: src/main.cpp, build/msvc-debug/Debug/multi_rtsp_video_analysis.exe
+- Tags: integration-test, terminal-policy
+
+### Resolution
+- **Resolved**: 2026-10-07
+- **Notes**: Configuration validation succeeded; MP4 integration will be run with separate commands.
+
+## [ERR-20261007-DOC] powershell_exact_text_replacement
+
+**Logged**: 2026-10-07T12:00:00+08:00
+**Priority**: low
+**Status**: resolved
+**Area**: docs
+
+### 摘要（Summary）
+按固定换行格式替换 README 文档段落未命中。
+
+### 原始错误（Error）
+```text
+README target block not found
+```
+
+### 上下文（Context）
+- 文件实际包含 Windows 换行和与脚本字面量不同的空白格式。
+- 代码文件已经成功写入，文档尚未修改。
+
+### 建议修复（Suggested Fix）
+使用段落起止标记进行正则替换，不依赖换行符完全一致。
+
+### 元数据（Metadata）
+- Reproducible: yes
+- Related Files: README.md, docs/configuration.md
+- See Also: none
+
+### 解决情况（Resolution）
+- **Resolved**: 2026-10-07T12:00:00+08:00
+- **Commit/PR**: none
+- **Notes**: 后续改用段落边界替换。
+
+## [ERR-20261007-CMAKE] onnxruntime_cache_default
+
+**Logged**: 2026-10-07T12:00:00+08:00
+**Priority**: medium
+**Status**: resolved
+**Area**: infra
+
+### 摘要（Summary）
+为 ONNX Runtime 增加本机默认路径后，CMake 首次重新配置仍未找到依赖。
+
+### 原始错误（Error）
+```text
+Could NOT find ONNXRUNTIME (missing: ONNXRUNTIME_INCLUDE_DIR ONNXRUNTIME_LIBRARY ONNXRUNTIME_RUNTIME_LIBRARY)
+CMake Error at CMakeLists.txt:56 (message):
+  ONNX Runtime C++ was not found.
+```
+
+### 上下文（Context）
+- `ONNXRUNTIME_ROOT` 先通过 `CACHE` 创建为空值。
+- 后续默认路径写入没有使用 `FORCE`，因此空的 cache 值没有被更新。
+- 本机实际目录 `D:/Onnx/onnxruntime-win-x64-1.30.0` 中的头文件、库文件和 DLL 均存在。
+
+### 建议修复（Suggested Fix）
+在环境变量和本机默认路径分支中使用 `CACHE PATH ... FORCE`，仅在用户未显式设置路径时覆盖空 cache 值。
+
+### 元数据（Metadata）
+- Reproducible: yes
+- Related Files: CMakeLists.txt
+- See Also: none
+
+### 解决情况（Resolution）
+- **Resolved**: 2026-10-07T12:00:00+08:00
+- **Commit/PR**: none
+- **Notes**: 已修正 cache 写入逻辑，等待重新配置验证。

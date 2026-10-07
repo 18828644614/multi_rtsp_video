@@ -39,14 +39,15 @@ void testBoundingBoxRejectsInvalidCoordinates() {
 
 void testDetectionResultStoresFrameMetadataAndDetections() {
     vision::DetectionResult result;
-    result.stream_id = "camera-01";
-    result.sequence = 42;
-    result.pts = 9000;
-    result.time_base = {1, 90000};
-    result.capture_time_ms = 1730000000123;
-    result.monotonic_time_ms = 987654321;
-    result.width = 1920;
-    result.height = 1080;
+    result.metadata.stream_id = "camera-01";
+    result.metadata.sequence = 42;
+    result.metadata.source_epoch = 2;
+    result.metadata.pts = 9000;
+    result.metadata.time_base = {1, 90000};
+    result.metadata.received_at_unix_ms = 1730000000123;
+    result.metadata.received_at_steady_ms = 987654321;
+    result.metadata.width = 1920;
+    result.metadata.height = 1080;
     result.detections.push_back({
         0,
         "person",
@@ -54,32 +55,34 @@ void testDetectionResultStoresFrameMetadataAndDetections() {
         {100.0, 120.0, 80.0, 240.0}
     });
 
-    require(result.stream_id == "camera-01", "stream ID was not stored");
-    require(result.sequence == 42, "frame sequence was not stored");
-    require(result.pts == 9000, "media PTS was not stored");
-    require(result.time_base.numerator == 1 && result.time_base.denominator == 90000, "PTS time base was not stored");
-    require(result.capture_time_ms == 1730000000123, "capture wall-clock time was not stored");
-    require(result.monotonic_time_ms == 987654321, "capture monotonic time was not stored");
-    require(result.width == 1920 && result.height == 1080, "frame dimensions were not stored");
+    require(result.metadata.stream_id == "camera-01", "stream ID was not stored");
+    require(result.metadata.sequence == 42, "frame sequence was not stored");
+    require(result.metadata.source_epoch == 2, "source epoch was not stored");
+    require(result.metadata.pts == 9000, "media PTS was not stored");
+    require(result.metadata.time_base.numerator == 1 && result.metadata.time_base.denominator == 90000, "PTS time base was not stored");
+    require(result.metadata.received_at_unix_ms == 1730000000123, "capture wall-clock time was not stored");
+    require(result.metadata.received_at_steady_ms == 987654321, "capture monotonic time was not stored");
+    require(result.metadata.width == 1920 && result.metadata.height == 1080, "frame dimensions were not stored");
     require(result.detections.size() == 1, "detection was not stored");
     require(result.detections.front().class_id == 0, "class ID was not stored");
     require(result.detections.front().label == "person", "class label was not stored");
     require(result.detections.front().confidence == 0.95, "confidence was not stored");
-    require(result.detections.front().bbox.isWithinFrame(result.width, result.height), "stored detection box is outside the frame");
+    require(result.detections.front().bbox.isWithinFrame(result.metadata.width, result.metadata.height), "stored detection box is outside the frame");
 }
 
 class TestDetector final : public vision::Detector {
 public:
     vision::DetectionResult detect(const media::FramePacket& frame) override {
         vision::DetectionResult result;
-        result.stream_id = frame.stream_id;
-        result.sequence = frame.sequence;
-        result.pts = frame.pts;
-        result.time_base = frame.time_base;
-        result.capture_time_ms = frame.capture_time_ms;
-        result.monotonic_time_ms = frame.monotonic_time_ms;
-        result.width = frame.width;
-        result.height = frame.height;
+        result.metadata.stream_id = frame.metadata.stream_id;
+        result.metadata.sequence = frame.metadata.sequence;
+        result.metadata.source_epoch = frame.metadata.source_epoch;
+        result.metadata.pts = frame.metadata.pts;
+        result.metadata.time_base = frame.metadata.time_base;
+        result.metadata.received_at_unix_ms = frame.metadata.received_at_unix_ms;
+        result.metadata.received_at_steady_ms = frame.metadata.received_at_steady_ms;
+        result.metadata.width = frame.metadata.width;
+        result.metadata.height = frame.metadata.height;
         return result;
     }
 };
@@ -87,14 +90,16 @@ public:
 void testDetectorInterfaceUsesFrameAndReturnsResult() {
     TestDetector detector;
     media::FramePacket frame;
-    frame.stream_id = "camera-02";
-    frame.sequence = 7;
-    frame.width = 640;
-    frame.height = 360;
+    frame.metadata.stream_id = "camera-02";
+    frame.metadata.sequence = 7;
+    frame.metadata.source_epoch = 1;
+    frame.metadata.width = 640;
+    frame.metadata.height = 360;
 
     const vision::DetectionResult result = detector.detect(frame);
-    require(result.stream_id == frame.stream_id && result.sequence == frame.sequence, "detector interface did not preserve frame identity");
-    require(result.width == frame.width && result.height == frame.height, "detector interface did not preserve frame dimensions");
+    require(result.metadata.stream_id == frame.metadata.stream_id && result.metadata.sequence == frame.metadata.sequence &&
+        result.metadata.source_epoch == frame.metadata.source_epoch, "detector interface did not preserve frame identity");
+    require(result.metadata.width == frame.metadata.width && result.metadata.height == frame.metadata.height, "detector interface did not preserve frame dimensions");
 }
 
 }

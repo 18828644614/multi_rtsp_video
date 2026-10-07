@@ -5,6 +5,8 @@
 
 #include <cstddef>
 #include <memory>
+#include <string>
+#include <vector>
 
 namespace vision {
 
@@ -12,6 +14,7 @@ struct OnnxDetectorOptions {
     double confidence_threshold = 0.25;
     int intra_op_threads = 0;
     std::size_t max_detections = 300;
+    std::vector<std::string> class_filter;
 };
 
 class OnnxDetector final : public Detector {

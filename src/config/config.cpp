@@ -13,6 +13,8 @@ namespace {
 
 using KeySet = std::set<std::string, std::less<>>;
 
+DropPolicy parseDropPolicy(const std::string& value, const std::string& field);
+
 [[noreturn]] void fail(const std::string& message) {
     throw ConfigError(message);
 }
@@ -74,6 +76,41 @@ app_fs::path resolvePath(const app_fs::path& baseDirectory, const std::string& r
         path = baseDirectory / path;
     }
     return app_fs::absolute(path);
+}
+
+QueueSettings parseQueueSettings(
+    const YAML::Node& node,
+    const std::string& field,
+    const QueueSettings* inherited = nullptr) {
+    requireMap(node, field);
+    validateKeys(node, field, {"max_frames", "max_age_ms", "drop_policy"});
+
+    QueueSettings settings = inherited == nullptr ? QueueSettings{} : *inherited;
+    if (inherited == nullptr) {
+        settings.max_frames = readValue<int>(requireNode(node, "max_frames", field + ".max_frames"), field + ".max_frames");
+        settings.max_age_ms = readValue<int>(requireNode(node, "max_age_ms", field + ".max_age_ms"), field + ".max_age_ms");
+        settings.drop_policy = parseDropPolicy(
+            readValue<std::string>(requireNode(node, "drop_policy", field + ".drop_policy"), field + ".drop_policy"),
+            field + ".drop_policy");
+    } else {
+        settings.max_frames = readOptional<int>(node, "max_frames", settings.max_frames, field);
+        settings.max_age_ms = readOptional<int>(node, "max_age_ms", settings.max_age_ms, field);
+        const YAML::Node policy = node["drop_policy"];
+        if (policy && !policy.IsNull()) {
+            settings.drop_policy = parseDropPolicy(readValue<std::string>(policy, field + ".drop_policy"), field + ".drop_policy");
+        }
+    }
+
+    if (settings.max_frames <= 0) {
+        fail(field + ".max_frames must be greater than 0");
+    }
+    if (settings.max_age_ms < 0) {
+        fail(field + ".max_age_ms must be greater than or equal to 0");
+    }
+    if (settings.drop_policy == DropPolicy::Block && settings.max_age_ms > 0) {
+        fail(field + ".max_age_ms must be 0 when drop_policy is block");
+    }
+    return settings;
 }
 
 void validateRange(double value, double minimum, double maximum, const std::string& field) {
@@ -166,21 +203,29 @@ RulesSettings parseRules(const YAML::Node& node, const std::string& field) {
     const YAML::Node rois = node["rois"];
     if (rois && !rois.IsNull()) {
         requireSequence(rois, field + ".rois");
-        settings.roi_count = rois.size();
+        if (rois.size() != 0) {
+            fail(field + ".rois are not supported yet");
+        }
     }
 
     const YAML::Node lines = node["lines"];
     if (lines && !lines.IsNull()) {
         requireSequence(lines, field + ".lines");
-        settings.line_count = lines.size();
+        if (lines.size() != 0) {
+            fail(field + ".lines are not supported yet");
+        }
     }
     return settings;
 }
 
-StreamSettings parseStream(const YAML::Node& node, std::size_t index, const app_fs::path& baseDirectory) {
+StreamSettings parseStream(
+    const YAML::Node& node,
+    std::size_t index,
+    const app_fs::path& baseDirectory,
+    const QueueSettings& defaultQueue) {
     const std::string field = "streams[" + std::to_string(index) + "]";
     requireMap(node, field);
-    validateKeys(node, field, {"id", "type", "path", "url", "transport", "realtime", "loop", "reconnect", "rules"});
+    validateKeys(node, field, {"id", "type", "path", "url", "transport", "realtime", "loop", "reconnect", "rules", "queue"});
 
     StreamSettings stream;
     stream.id = readValue<std::string>(requireNode(node, "id", field + ".id"), field + ".id");
@@ -198,6 +243,10 @@ StreamSettings parseStream(const YAML::Node& node, std::size_t index, const app_
     stream.loop = readOptional<bool>(node, "loop", false, field);
     stream.reconnect = parseReconnect(node["reconnect"], field + ".reconnect");
     stream.rules = parseRules(node["rules"], field + ".rules");
+    const YAML::Node queue = node["queue"];
+    stream.queue = queue && !queue.IsNull()
+                       ? parseQueueSettings(queue, field + ".queue", &defaultQueue)
+                       : defaultQueue;
 
     const YAML::Node path = node["path"];
     const YAML::Node url = node["url"];
@@ -253,17 +302,11 @@ AppConfig loadConfig(const app_fs::path& path) {
 
     const YAML::Node model = requireNode(root, "model", "model");
     requireMap(model, "model");
-    validateKeys(model, "model", {"path", "manifest", "input_width", "input_height", "confidence_threshold", "nms_threshold", "class_filter"});
+    validateKeys(model, "model", {"path", "manifest", "confidence_threshold", "class_filter"});
     config.model.path = resolvePath(config.base_directory, readValue<std::string>(requireNode(model, "path", "model.path"), "model.path"), "model.path");
     config.model.manifest = resolvePath(config.base_directory, readValue<std::string>(requireNode(model, "manifest", "model.manifest"), "model.manifest"), "model.manifest");
-    config.model.input_width = readValue<int>(requireNode(model, "input_width", "model.input_width"), "model.input_width");
-    config.model.input_height = readValue<int>(requireNode(model, "input_height", "model.input_height"), "model.input_height");
     config.model.confidence_threshold = readValue<double>(requireNode(model, "confidence_threshold", "model.confidence_threshold"), "model.confidence_threshold");
-    config.model.nms_threshold = readValue<double>(requireNode(model, "nms_threshold", "model.nms_threshold"), "model.nms_threshold");
-    validatePositive(config.model.input_width, "model.input_width");
-    validatePositive(config.model.input_height, "model.input_height");
     validateRange(config.model.confidence_threshold, 0.0, 1.0, "model.confidence_threshold");
-    validateRange(config.model.nms_threshold, 0.0, 1.0, "model.nms_threshold");
 
     const YAML::Node classFilter = requireNode(model, "class_filter", "model.class_filter");
     requireSequence(classFilter, "model.class_filter");
@@ -277,18 +320,8 @@ AppConfig loadConfig(const app_fs::path& path) {
         }
         config.model.class_filter.push_back(label);
     }
-    if (config.model.class_filter.empty()) {
-        fail("model.class_filter must not be empty");
-    }
-
     const YAML::Node queue = requireNode(root, "queue", "queue");
-    requireMap(queue, "queue");
-    validateKeys(queue, "queue", {"max_frames", "max_age_ms", "drop_policy"});
-    config.queue.max_frames = readValue<int>(requireNode(queue, "max_frames", "queue.max_frames"), "queue.max_frames");
-    config.queue.max_age_ms = readValue<int>(requireNode(queue, "max_age_ms", "queue.max_age_ms"), "queue.max_age_ms");
-    config.queue.drop_policy = parseDropPolicy(readValue<std::string>(requireNode(queue, "drop_policy", "queue.drop_policy"), "queue.drop_policy"), "queue.drop_policy");
-    validatePositive(config.queue.max_frames, "queue.max_frames");
-    validatePositive(config.queue.max_age_ms, "queue.max_age_ms");
+    config.queue = parseQueueSettings(queue, "queue");
 
     const YAML::Node output = requireNode(root, "output", "output");
     requireMap(output, "output");
@@ -306,7 +339,7 @@ AppConfig loadConfig(const app_fs::path& path) {
         fail("streams must contain at least one stream");
     }
     for (std::size_t index = 0; index < streams.size(); ++index) {
-        config.streams.push_back(parseStream(streams[index], index, config.base_directory));
+        config.streams.push_back(parseStream(streams[index], index, config.base_directory, config.queue));
     }
 
     return config;

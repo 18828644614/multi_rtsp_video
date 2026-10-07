@@ -144,13 +144,13 @@ Created → Connecting → Running
 
 ## 5. 时间戳与帧所有权
 
-每个 `FramePacket` 必须包含：
+每个 `FramePacket` 必须包含 `FrameMetadata` 和图像所有权信息：
 
-- `stream_id` 和单调递增的 `sequence`。
-- 原始 `pts` 和 `time_base`。
-- 输入接收时的墙上时钟时间。
-- 输入接收和处理完成时的单调时钟时间。
-- 图像尺寸、像素格式和数据所有权信息。
+- `stream_id`、单调递增的 `sequence` 和输入 `source_epoch`。
+- 可为空的原始 `pts` 和 `time_base`。
+- 输入接收时的墙上时钟 `received_at_unix_ms`。
+- 输入接收时的单调时钟 `received_at_steady_ms`。
+- 图像尺寸、像素格式、stride 和独立拥有的图像缓冲。
 
 延迟统计使用单调时钟，不使用可能发生跳变的系统墙上时钟。事件时间和输出视频时间戳使用经过转换的源时间或明确的实时模拟时间。
 

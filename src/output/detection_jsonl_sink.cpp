@@ -60,8 +60,14 @@ std::string formatJsonNumber(double value, const std::string& field) {
 }
 
 void validateResult(const vision::DetectionResult& result) {
-    if (result.width < 0 || result.height < 0) {
+    if (result.metadata.stream_id.empty()) {
+        throw std::invalid_argument("detection result stream_id must not be empty");
+    }
+    if (result.metadata.width < 0 || result.metadata.height < 0) {
         throw std::invalid_argument("detection result dimensions must not be negative");
+    }
+    if (result.metadata.time_base.denominator == 0) {
+        throw std::invalid_argument("detection result time_base denominator must not be zero");
     }
 
     for (const auto& detection : result.detections) {
@@ -75,7 +81,7 @@ void validateResult(const vision::DetectionResult& result) {
         formatJsonNumber(detection.bbox.width, "bbox.width");
         formatJsonNumber(detection.bbox.height, "bbox.height");
 
-        if (!detection.bbox.isWithinFrame(result.width, result.height)) {
+        if (!detection.bbox.isWithinFrame(result.metadata.width, result.metadata.height)) {
             throw std::invalid_argument("detection bounding box is outside the frame");
         }
     }
@@ -93,14 +99,24 @@ void DetectionJsonlSink::write(const vision::DetectionResult& result) {
     validateResult(result);
 
     std::ostringstream line;
-    line << "{\"schema_version\":1"
+    line << "{\"schema_version\":2"
          << ",\"type\":\"detection\""
          << ",\"stream_id\":";
-    writeJsonString(line, result.stream_id);
-    line << ",\"sequence\":" << result.sequence
-         << ",\"timestamp_ms\":" << result.capture_time_ms
-         << ",\"width\":" << result.width
-         << ",\"height\":" << result.height
+    writeJsonString(line, result.metadata.stream_id);
+    line << ",\"source_epoch\":" << result.metadata.source_epoch
+         << ",\"sequence\":" << result.metadata.sequence
+         << ",\"timestamp_ms\":" << result.metadata.received_at_unix_ms
+         << ",\"received_at_unix_ms\":" << result.metadata.received_at_unix_ms
+         << ",\"pts\":";
+    if (result.metadata.pts.has_value()) {
+        line << *result.metadata.pts;
+    } else {
+        line << "null";
+    }
+    line << ",\"time_base\":{\"numerator\":" << result.metadata.time_base.numerator
+         << ",\"denominator\":" << result.metadata.time_base.denominator << "}"
+         << ",\"width\":" << result.metadata.width
+         << ",\"height\":" << result.metadata.height
          << ",\"objects\":[";
 
     for (std::size_t index = 0; index < result.detections.size(); ++index) {

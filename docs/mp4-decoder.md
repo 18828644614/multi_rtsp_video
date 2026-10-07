@@ -12,20 +12,25 @@
 4. 循环调用 `av_read_frame`，只把目标视频流的 `AVPacket` 发送给 `avcodec_send_packet`。
 5. 循环调用 `avcodec_receive_frame`，处理 FFmpeg 的 `EAGAIN`，文件读完后发送空包刷新解码器。
 6. 通过 `sws_getContext`/`sws_scale` 将源像素格式转换为 BGR24，并复制到独立 `vector`。
-7. 从 `best_effort_timestamp` 获取帧 PTS，同时保留视频流 `time_base`，并记录墙钟时间和单调时钟时间。
-8. 在 `close`、析构和异常路径释放 `SwsContext`、`AVFrame`、`AVPacket`、`AVCodecContext` 和 `AVFormatContext`。
+7. 从 `best_effort_timestamp` 获取帧 PTS；若 FFmpeg 没有有效 PTS，则输出空值；同时保留视频流 `time_base`。
+8. 记录帧完成解码时的墙上时间和单调时间。
+9. 在 `close`、析构和异常路径释放 `SwsContext`、`AVFrame`、`AVPacket`、`AVCodecContext` 和 `AVFormatContext`。
 
 ## 3. 帧数据契约
 
-`FramePacket` 当前包含；代码中保留 `DecodedFrame` 作为兼容别名：
+`FramePacket` 由 `FrameMetadata` 和图像所有权组成；代码中保留 `DecodedFrame` 作为兼容别名：
 
-- `stream_id`：单路解码默认值为 `mp4`。
-- `sequence`：从 0 开始递增的解码帧序号。
-- `pts` 与 `time_base`：源视频时间戳，不用墙钟时间替代。
-- `width`、`height`、`stride`：BGR24 输出布局。
+- `metadata.stream_id`：单路解码默认值为 `mp4`。
+- `metadata.sequence`：在解码器生命周期内递增的帧序号。
+- `metadata.source_epoch`：每次成功打开输入源时递增的输入代数。
+- `metadata.pts` 与 `metadata.time_base`：源视频时间戳和时基；无效 PTS 为空。
+- `metadata.received_at_unix_ms`：当前帧完成解码时的墙上时间。
+- `metadata.received_at_steady_ms`：当前帧完成解码时的单调时间，用于队列年龄和延迟。
+- `metadata.width`、`metadata.height`、`stride`：BGR24 输出布局。
 - `pixel_format`：当前为 `Bgr24`。
-- `capture_time_ms`、`monotonic_time_ms`：帧完成解码时的接收时间。
 - `image`：连续的 BGR24 字节，大小为 `stride * height`。
+
+`FrameSource::read()` 返回 `FrameReadResult`。MP4 正常结束时返回 `EndOfStream`，不能把 EOF 当作 RTSP 断流或可重试错误。
 
 ## 4. 命令行验证
 
@@ -56,4 +61,4 @@ ctest --preset msvc-debug -C Debug -R mp4_decoder_test --output-on-failure
 
 ## 5. 当前范围
 
-当前实现只负责单路离线 MP4 解码，不包含模型推理、OpenCV `cv::Mat` 封装、队列、实时节奏控制、RTSP 超时或重连。后续 `StreamWorker` 可以直接消费 `DecodedFrame`，再将其放入有界队列。
+当前实现只负责单路离线 MP4 解码，不包含模型推理、OpenCV `cv::Mat` 封装、队列、实时节奏控制、RTSP 超时或重连。后续 `StreamWorker` 可以直接消费 `FramePacket`，再将其放入有界队列。

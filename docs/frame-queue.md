@@ -8,7 +8,7 @@
 
 ## 2. 帧所有权
 
-`media::FramePacket` 定义在 `include/media/frame.hpp`。其中 `image` 是独立的 `std::vector<uint8_t>`，因此入队时通过移动转移所有权：
+`media::FramePacket` 定义在 `include/media/frame.hpp`。其中 `metadata` 描述帧身份和时间，`image` 是独立的 BGR24 字节缓冲区，入队时通过移动转移所有权：
 
 ```text
 FFmpeg 解码器拥有当前帧
@@ -30,7 +30,7 @@ FrameQueue 拥有排队中的帧
 
 ## 4. 生命周期
 
-`close()` 表示生产者不会再放入新帧，但消费者可以继续取出队列中已有的帧。
+`close()` 表示生产者不会再放入新帧，但消费者可以继续取出队列中已有帧。
 
 `abort()` 表示立即停止，清空队列并唤醒等待中的生产者和消费者。
 
@@ -48,9 +48,9 @@ close() 或 abort()
 
 ## 5. 队列年龄
 
-`max_age_ms` 使用 `FramePacket::monotonic_time_ms` 判断帧是否过期，不使用 PTS。PTS 是视频源时间轴，不能直接表示当前帧在程序中的等待时长。
+`max_age_ms` 使用 `FrameMetadata::received_at_steady_ms` 判断帧是否过期，不使用 PTS。PTS 是视频源时间轴，不能直接表示当前帧在程序中的等待时长。
 
-当 `max_age_ms <= 0` 时，不启用年龄清理。当前配置解析仍要求 `queue.max_age_ms` 为正数；如果后续需要关闭年龄限制，可以把配置校验改为允许零。
+当 `max_age_ms <= 0` 时，不启用年龄清理。配置层允许 `max_age_ms: 0`；尤其是 MP4 的 `block` 模式必须使用 `0`，避免离线处理因帧龄限制丢帧。
 
 ## 6. 统计信息
 
@@ -61,15 +61,8 @@ close() 或 abort()
 - 因容量丢弃的旧帧和新帧；
 - 因超过最大年龄清理的帧。
 
-这些指标可以在后续 `StreamWorker` 中按 `stream_id` 汇总。
+这些指标后续在 `StreamWorker` 中按 `stream_id` 和 `source_epoch` 汇总。
 
 ## 7. 测试
 
 `tests/frame_queue_test.cpp` 不依赖 FFmpeg，覆盖 FIFO、丢旧帧、丢新帧、阻塞唤醒、关闭排空、立即中止、超时和最大年龄清理。
-
-在完整依赖可用时运行：
-
-```powershell
-cmake --build --preset msvc-debug --config Debug --target frame_queue_test
-ctest --preset msvc-debug -C Debug -R frame_queue_test --output-on-failure
-```

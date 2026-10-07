@@ -5,9 +5,11 @@
 
 #include <onnxruntime_cxx_api.h>
 
+#include <algorithm>
 #include <array>
 #include <cmath>
 #include <cstdint>
+#include <iterator>
 #include <stdexcept>
 #include <string>
 #include <utility>
@@ -62,10 +64,12 @@ struct OnnxDetector::Impl {
     std::string input_name;
     std::string output_name;
     std::size_t candidate_count = 8400;
+    std::vector<std::uint32_t> class_filter_ids;
 
     Impl(const app_fs::path& model_path, const app_fs::path& manifest_path, OnnxDetectorOptions detector_options)
         : manifest(loadModelManifest(manifest_path)), options(detector_options) {
         validateConfiguration();
+        resolveClassFilter();
 
         if (options.intra_op_threads > 0) {
             session_options.SetIntraOpNumThreads(options.intra_op_threads);
@@ -104,8 +108,21 @@ struct OnnxDetector::Impl {
             options.confidence_threshold < 0.0 || options.confidence_threshold > 1.0) {
             throw std::invalid_argument("confidence_threshold must be in [0, 1]");
         }
+        for (const auto& label : options.class_filter) {
+            if (std::find(manifest.classes.begin(), manifest.classes.end(), label) == manifest.classes.end()) {
+                throw std::invalid_argument("class_filter contains an unknown model class: " + label);
+            }
+        }
     }
 
+    void resolveClassFilter() {
+        class_filter_ids.clear();
+        class_filter_ids.reserve(options.class_filter.size());
+        for (const auto& label : options.class_filter) {
+            const auto iterator = std::find(manifest.classes.begin(), manifest.classes.end(), label);
+            class_filter_ids.push_back(static_cast<std::uint32_t>(std::distance(manifest.classes.begin(), iterator)));
+        }
+    }
     void validateModelSignature() {
         if (session->GetInputCount() != 1 || session->GetOutputCount() != 1) {
             throw std::runtime_error("YOLO26 model must have exactly one input and one output");
@@ -161,14 +178,15 @@ struct OnnxDetector::Impl {
         }
 
         DetectionResult result;
-        result.stream_id = frame.stream_id;
-        result.sequence = frame.sequence;
-        result.pts = frame.pts;
-        result.time_base = frame.time_base;
-        result.capture_time_ms = frame.capture_time_ms;
-        result.monotonic_time_ms = frame.monotonic_time_ms;
-        result.width = frame.width;
-        result.height = frame.height;
+        result.metadata.stream_id = frame.metadata.stream_id;
+        result.metadata.sequence = frame.metadata.sequence;
+        result.metadata.source_epoch = frame.metadata.source_epoch;
+        result.metadata.pts = frame.metadata.pts;
+        result.metadata.time_base = frame.metadata.time_base;
+        result.metadata.received_at_unix_ms = frame.metadata.received_at_unix_ms;
+        result.metadata.received_at_steady_ms = frame.metadata.received_at_steady_ms;
+        result.metadata.width = frame.metadata.width;
+        result.metadata.height = frame.metadata.height;
         result.detections = detail::decodeYolo26Output(
             outputs.front().GetTensorData<float>(),
             outputInfo.GetElementCount(),
@@ -176,7 +194,8 @@ struct OnnxDetector::Impl {
             manifest,
             prepared.transform,
             options.confidence_threshold,
-            options.max_detections);
+            options.max_detections,
+            class_filter_ids);
         return result;
     }
 };

@@ -6,6 +6,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <string>
 #include <vector>
 
 namespace vision::detail {
@@ -34,6 +35,7 @@ std::vector<Detection> decodeYolo26Output(
     const ModelManifest& manifest,
     const Yolo26Transform& transform,
     double confidence_threshold,
-    std::size_t max_detections);
+    std::size_t max_detections,
+    const std::vector<std::uint32_t>& class_filter);
 
 }

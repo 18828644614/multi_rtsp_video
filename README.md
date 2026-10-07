@@ -109,18 +109,14 @@ build/msvc-debug/Debug/multi_rtsp_video_analysis.exe --decode-mp4 data/demo.mp4 
 ```
 
 
-验证生产者—消费者流水线（队列满时阻塞生产者，保证 MP4 帧不丢失）：
+验证配置驱动的单路 MP4 检测流水线：
 
 ```powershell
-build/msvc-debug/Debug/multi_rtsp_video_analysis.exe --process-mp4 data/demo.mp4 100 4
+build/msvc-debug/Debug/multi_rtsp_video_analysis.exe --process-mp4 configs/example.yaml demo-mp4 100
 ```
 
-最后两个参数分别是最大处理帧数（`0` 表示处理到文件结束）和队列容量。消费者现在会加载 YOLO26n ONNX 模型，对每帧执行检测，并默认将结果写入 `detections.jsonl`。
+`--process-mp4` 的参数依次是配置文件、可选的 MP4 流 ID 和可选的最大处理帧数。省略流 ID 时，程序选择配置中第一个 `type: mp4` 的流；最大处理帧数为 `0` 或省略时处理到文件结束。
 
-也可以继续传入模型、manifest 和输出文件路径：
-
-```powershell
-build/msvc-debug/Debug/multi_rtsp_video_analysis.exe --process-mp4 data/demo.mp4 100 4 models/detector.onnx models/detector-manifest.yaml detections.jsonl
-```
+模型路径、manifest、置信度阈值、类别过滤、队列容量、丢帧策略和输出目录全部来自 YAML，不再从命令行重复指定。检测结果写入 `<output.directory>/<stream-id>.detections.jsonl`，例如 `output/demo-mp4.detections.jsonl`。
 
 实现细节、资源生命周期和排错方式见 `docs/mp4-decoder.md`。
