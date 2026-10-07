@@ -64,6 +64,8 @@ multi_rtsp_video_analysis.exe --process-mp4 configs/example.yaml demo-mp4 100
 - `max-frames` 只用于本次运行的快速限制；省略或填写 `0` 表示处理到文件结束。
 - 输出目录由 `output.directory` 决定，结果文件名为 `<stream-id>.detections.jsonl`。
 - 当前 MP4 入口不支持 `loop: true`；配置加载可以保留该字段供后续输入源实现，但运行时会明确报错。
-- `output.save_annotated_video`、事件和截图开关已进入配置契约，实际输出器将在后续阶段接入。
+- `output.save_annotated_video: true` 时，会额外生成 `<stream-id>.annotated.mp4`；当前使用输入视频的帧率和 `mp4v` 编码，并在每帧上绘制类别、置信度和绿色检测框。
+- `output.save_annotated_video: false` 时，不生成标注视频；JSONL 检测结果仍然照常输出。
+- 事件和截图开关已经进入配置契约，但事件输出和告警截图仍属于后续阶段。
 
 环境变量 `${NAME}` 替换尚未实现；配置文档暂不把它作为可用能力。

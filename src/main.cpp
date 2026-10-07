@@ -9,10 +9,12 @@
 #include "app/version.hpp"
 #include "config/config.hpp"
 #include "media/ffmpeg_mp4_decoder.hpp"
+#include "output/annotated_video_writer.hpp"
 #include "output/detection_jsonl_sink.hpp"
 #include "pipeline/frame_pipeline.hpp"
 #include "vision/onnx_detector.hpp"
 #include <cstddef>
+#include <memory>
 
 namespace {
 
@@ -146,6 +148,19 @@ int processMp4(int argc, char* argv[]) {
     media::FfmpegMp4Decoder decoder(stream.path, stream.id);
     decoder.open();
     const media::VideoInfo& info = decoder.info();
+
+    const app_fs::path annotatedVideoPath =
+        appConfig.output.directory / (stream.id + ".annotated.mp4");
+    std::unique_ptr<output::AnnotatedVideoWriter> annotatedVideoWriter;
+    if (appConfig.output.save_annotated_video) {
+        const double outputFps = info.average_frame_rate > 0.0 ? info.average_frame_rate : 25.0;
+        annotatedVideoWriter = std::make_unique<output::AnnotatedVideoWriter>(
+            annotatedVideoPath,
+            outputFps,
+            info.width,
+            info.height);
+    }
+
     std::cout << "config: " << appConfig.source_path.string() << "\n";
     std::cout << "stream: " << stream.id << "\n";
     std::cout << "input: " << info.path.string() << "\n";
@@ -156,10 +171,16 @@ int processMp4(int argc, char* argv[]) {
     std::cout << "confidence_threshold: " << appConfig.model.confidence_threshold << "\n";
     std::cout << "class_filter: " << appConfig.model.class_filter.size() << " labels\n";
     std::cout << "detection_output: " << outputPath.string() << "\n";
+    if (annotatedVideoWriter) {
+        std::cout << "annotated_video_output: " << annotatedVideoPath.string() << "\n";
+    } else {
+        std::cout << "annotated_video_output: disabled\n";
+    }
 
     std::size_t producedFrames = 0;
     std::size_t consumedFrames = 0;
     std::size_t detectedObjects = 0;
+    std::size_t annotatedFrames = 0;
     pipeline::FramePipeline framePipeline({
         static_cast<std::size_t>(stream.queue.max_frames),
         static_cast<int64_t>(stream.queue.max_age_ms),
@@ -192,8 +213,16 @@ int processMp4(int argc, char* argv[]) {
             const vision::DetectionResult result = detector.detect(frame);
             detectedObjects += result.detections.size();
             sink.write(result);
+            if (annotatedVideoWriter) {
+                annotatedVideoWriter->write(frame, result);
+                ++annotatedFrames;
+            }
             ++consumedFrames;
         });
+
+    if (annotatedVideoWriter) {
+        annotatedVideoWriter->close();
+    }
 
     detectionOutput.flush();
     if (!detectionOutput) {
@@ -203,6 +232,9 @@ int processMp4(int argc, char* argv[]) {
     std::cout << "produced_frames: " << producedFrames << "\n";
     std::cout << "consumed_frames: " << consumedFrames << "\n";
     std::cout << "detected_objects: " << detectedObjects << "\n";
+    if (annotatedVideoWriter) {
+        std::cout << "annotated_frames: " << annotatedFrames << "\n";
+    }
     std::cout << "queue_peak: " << stats.peak_size << " / " << stream.queue.max_frames << "\n";
     std::cout << "queue_dropped: " << stats.dropped_oldest + stats.dropped_newest + stats.expired << "\n";
     return 0;

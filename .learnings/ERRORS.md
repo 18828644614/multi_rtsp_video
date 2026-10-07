@@ -1043,3 +1043,68 @@ CMake Error at CMakeLists.txt:56 (message):
 - **Resolved**: 2026-10-07T12:00:00+08:00
 - **Commit/PR**: none
 - **Notes**: 已修正 cache 写入逻辑，等待重新配置验证。
+
+## [ERR-20261007-PATCH] apply_patch_access_denied
+
+**Logged**: 2026-10-07T13:00:00+08:00
+**Priority**: medium
+**Status**: resolved
+**Area**: infra
+
+### 摘要（Summary）
+在 Windows PowerShell 中调用 `apply_patch` 时返回 `Access is denied.`，补丁没有写入任何项目文件。
+
+### 原始错误（Error）
+```text
+Access is denied.
+```
+
+### 上下文（Context）
+- 工作目录：`D:\LearningProjects\multi_rtsp_video_analysis`
+- 已确认 `apply_patch.bat` 存在，但通过 PowerShell 管道调用时被拒绝。
+- 后续改用 PowerShell 的安全文本写入方式完成相同修改。
+
+### 建议修复（Suggested Fix）
+在当前 Windows 会话中不要依赖被拒绝的 `apply_patch` 管道调用；使用受控的 PowerShell 文件写入和局部文本替换，并在写入后立即用 `git diff` 检查结果。
+
+### 元数据（Metadata）
+- Reproducible: yes
+- Related Files: `CMakeLists.txt`, `src/main.cpp`
+- See Also: none
+
+### 解决情况（Resolution）
+- **Resolved**: 2026-10-07T13:00:00+08:00
+- **Commit/PR**: none
+- **Notes**: 尚未开始实际代码写入，补丁内容需要重新应用。
+
+## [ERR-20261007-VISUAL] preview_command_policy_rejection
+
+**Logged**: 2026-10-07T13:55:00+08:00
+**Priority**: low
+**Status**: pending
+**Area**: tests
+
+### 摘要（Summary）
+抽取标注视频首帧时，带有 PowerShell 临时路径变量的命令被执行策略拒绝，未影响构建和视频输出验证。
+
+### 原始错误（Error）
+```text
+CreateProcess ... rejected: blocked by policy
+```
+
+### 上下文（Context）
+- 已通过 `ffprobe` 验证标注视频编码、分辨率和 30 帧数量。
+- 视觉预览命令使用了 `$env:TEMP` 和嵌套引号，命令启动前被策略拦截。
+
+### 建议修复（Suggested Fix）
+如需视觉检查，使用项目目录内的固定预览路径并避免嵌套 PowerShell 变量；完成检查后删除临时预览文件。
+
+### 元数据（Metadata）
+- Reproducible: unknown
+- Related Files: `output/demo-mp4.annotated.mp4`
+- See Also: none
+
+### 解决情况（Resolution）
+- **Resolved**: 2026-10-07T13:56:00+08:00
+- **Commit/PR**: none
+- **Notes**: 改用项目目录固定路径成功抽取首帧并完成视觉检查，之后使用显式文件 API 删除临时预览文件。

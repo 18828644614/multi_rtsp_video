@@ -9,7 +9,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 include(FetchContent)
 include(FindPackageHandleStandardArgs)
 find_package(Threads REQUIRED)
-find_package(OpenCV 4 REQUIRED COMPONENTS core imgproc)
+find_package(OpenCV 4 REQUIRED COMPONENTS core imgproc videoio)
 
 set(ONNXRUNTIME_ROOT "" CACHE PATH "ONNX Runtime C++ installation prefix")
 if(NOT ONNXRUNTIME_ROOT AND DEFINED ENV{ONNXRUNTIME_ROOT})
@@ -265,6 +265,22 @@ target_include_directories(detection_jsonl_sink
 
 enable_project_warnings(detection_jsonl_sink)
 
+add_library(annotated_video_writer STATIC
+    src/output/annotated_video_writer.cpp
+)
+
+target_include_directories(annotated_video_writer
+    PUBLIC
+        ${PROJECT_SOURCE_DIR}/include
+)
+
+target_link_libraries(annotated_video_writer
+    PUBLIC
+        ${OpenCV_LIBS}
+)
+
+enable_project_warnings(annotated_video_writer)
+
 add_library(ffmpeg_decoder STATIC
     src/media/ffmpeg_mp4_decoder.cpp
 )
@@ -314,6 +330,7 @@ target_include_directories(multi_rtsp_video_analysis
 target_link_libraries(multi_rtsp_video_analysis
     PRIVATE
         app_config
+        annotated_video_writer
         detection_jsonl_sink
         ffmpeg_decoder
         frame_pipeline
